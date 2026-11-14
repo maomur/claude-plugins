@@ -3,7 +3,7 @@ description: Crea la oficina virtual con el equipo que haría falta para una apl
 argument-hint: "[opcional: qué quieres analizar, por ejemplo una dirección web]"
 ---
 
-Usa la skill `analizar-aplicacion` en **modo guiado**.
+Usa la skill `livestage` en **modo guiado**.
 
 - **Antes de preguntar nada**, busca si este proyecto ya tiene oficina con el
   script `buscar` de la skill. Si la tiene, no analices de nuevo ni hagas las

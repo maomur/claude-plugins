@@ -1,9 +1,9 @@
 ---
-name: analizar-aplicacion
+name: livestage
 description: Analiza el flujo de una aplicación o web (código, rutas, integraciones, páginas publicadas), define los procesos que la hacen funcionar, inventa el equipo ficticio que los llevaría —una persona por rol, con nombre, edad, estudios, experiencia y responsabilidades— y entrega todo en un único archivo HTML como los que se adjuntan a una tarea de Jira. Además monta la oficina virtual: el equipo sentado en una planta de oficina, con la simulación de un trabajo paso a paso, en el estilo que elija entre ocho (pixel art, isométrico, plano de arquitecto, ilustración plana, maqueta de papel, pizarra, holográfico o 3D realista). Úsala siempre que Mauricio pida analizar cómo funciona una aplicación, mapear sus procesos, «qué equipo haría falta», definir roles o perfiles para un proyecto, preparar un documento HTML para el equipo de IT, o ver al equipo en una oficina, un plano o una simulación, y también cuando quiera cambiar nombres de áreas, personas o procesos de una oficina ya montada en su proyecto, aunque no diga «skill» ni «HTML».
 ---
 
-# Analizar una aplicación: flujo, procesos y equipo
+# LiveStage: analizar una aplicación, su flujo, sus procesos y su equipo
 
 El resultado es **un solo archivo HTML** que se puede abrir, imprimir o adjuntar a
 una tarea de Jira. Sirve para que cualquiera entienda de un vistazo qué hace la

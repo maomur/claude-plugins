@@ -1,17 +1,17 @@
 <div align="center">
 
-# 🏢 Oficina Virtual para Claude Code
+# 🎭 LiveStage
 
-### Convierte tu aplicación en una oficina viva, con un equipo que trabaja delante de ti
+### Tu aplicación, en escena: una oficina viva con un equipo que trabaja delante de ti
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.5.0-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.6.0-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
 
-### [▶ Ver la demo en directo](https://maomur.github.io/claude-plugins/demo/)
+### [▶ Ver la demo en directo](https://maomur.github.io/livestage/demo/)
 
 <sub>Un trabajo de ejemplo que arranca solo: pulsa a cualquier persona para ver qué hace y cambia de estilo con el selector de arriba a la derecha.</sub>
 
@@ -167,8 +167,8 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 **1. Instala el plugin** en Claude Code:
 
 ```
-/plugin marketplace add maomur/claude-plugins
-/plugin install analizar-aplicacion@maomur
+/plugin marketplace add maomur/livestage
+/plugin install livestage@livestage
 ```
 
 Recarga la ventana (`Cmd+Shift+P` → `Developer: Reload Window`).
@@ -181,7 +181,7 @@ Recarga la ventana (`Cmd+Shift+P` → `Developer: Reload Window`).
 
 **3. Responde tres preguntas** (qué analizar, qué quieres recibir y en qué estilo) y deja que trabaje.
 
-> 👀 ¿Quieres verlo antes de instalar nada? Abre la **[demo en directo](https://maomur.github.io/claude-plugins/demo/)**: es exactamente lo que tendrás en tu proyecto, con un trabajo de ejemplo.
+> 👀 ¿Quieres verlo antes de instalar nada? Abre la **[demo en directo](https://maomur.github.io/livestage/demo/)**: es exactamente lo que tendrás en tu proyecto, con un trabajo de ejemplo.
 
 ---
 
@@ -221,10 +221,10 @@ flowchart TD
 
 ```
 .claude-plugin/marketplace.json            el catálogo de plugins
-plugins/analizar-aplicacion/
+plugins/livestage/
 ├── .claude-plugin/plugin.json             datos y versión del plugin
 ├── commands/oficina.md                    el comando /oficina (modo guiado)
-└── skills/analizar-aplicacion/
+└── skills/livestage/
     ├── SKILL.md                           las instrucciones que sigue Claude
     ├── assets/
     │   ├── oficinas/                      los 8 estilos + datos.js de ejemplo
@@ -277,7 +277,7 @@ Sí. Escribe <code>/oficina</code> de nuevo y elige qué cambiar, o edita <code>
 <br>
 
 ```
-/plugin update analizar-aplicacion@maomur
+/plugin update livestage@livestage
 ```
 
 Y para llevar el nuevo diseño a una oficina que ya tienes, ejecuta <code>/oficina</code> y elige «Actualizar el diseño»: tus datos se mantienen.

@@ -1,12 +1,16 @@
 {
-  "name": "maomur",
-  "owner": { "name": "Mauricio" },
-  "metadata": { "description": "Plugins de Claude Code de Mauricio" },
+  "name": "livestage",
+  "owner": {
+    "name": "Mauricio"
+  },
+  "metadata": {
+    "description": "LiveStage: tu aplicación como una oficina viva para Claude Code."
+  },
   "plugins": [
     {
-      "name": "analizar-aplicacion",
-      "source": "./plugins/analizar-aplicacion",
-      "description": "Analiza una aplicación, define sus procesos, inventa el equipo que los llevaría y lo muestra en una oficina virtual en 8 estilos."
+      "name": "livestage",
+      "source": "./plugins/livestage",
+      "description": "LiveStage: tu aplicación como una oficina viva. Analiza el proyecto, inventa el equipo y lo pone a trabajar en directo (8 estilos)."
     }
   ]
 }
