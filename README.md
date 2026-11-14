@@ -1,6 +1,9 @@
 <div align="center">
 
-# 🎭 LiveStage
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo-oscuro.svg">
+  <img src="docs/img/logo.svg" alt="LiveStage" width="460">
+</picture>
 
 ### Tu aplicación, en escena: una oficina viva con un equipo que trabaja delante de ti
 

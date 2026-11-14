@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="128" viewBox="0 0 560 128" role="img" aria-label="LiveStage">
+<g transform="translate(0,0)">
+  <defs>
+    <linearGradient id="hazc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF6D6" stop-opacity=".95"/><stop offset="1" stop-color="#FFF6D6" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="sueloc" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#2FD3A4" stop-opacity=".55"/><stop offset="1" stop-color="#2FD3A4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="#14202E"/>
+  <rect x="3" y="3" width="122" height="122" rx="27" fill="none" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="2"/>
+  <!-- foco -->
+  <rect x="55" y="12" width="18" height="9" rx="3" fill="#3A4766"/>
+  <polygon points="57,21 71,21 100,96 28,96" fill="url(#hazc)" opacity=".55"/>
+  <ellipse cx="64" cy="97" rx="40" ry="11" fill="url(#sueloc)"/>
+  <!-- el equipo -->
+  <g>
+    <path d="M30 99c0-8 5-12 10-12s10 4 10 12z" fill="#6C8CFF"/><circle cx="40" cy="80" r="6.5" fill="#6C8CFF"/>
+    <path d="M78 99c0-8 5-12 10-12s10 4 10 12z" fill="#FFB940"/><circle cx="88" cy="80" r="6.5" fill="#FFB940"/>
+    <circle cx="64" cy="84" r="20" fill="none" stroke="#2FD3A4" stroke-width="2.5" stroke-opacity=".55"/>
+    <path d="M52 99c0-10 6-15 12-15s12 5 12 15z" fill="#2FD3A4"/><circle cx="64" cy="75" r="8" fill="#2FD3A4"/>
+  </g>
+  <!-- en directo -->
+  <circle cx="102" cy="26" r="11" fill="#FF4D5E" fill-opacity=".22"/>
+  <circle cx="102" cy="26" r="6" fill="#FF4D5E"/>
+</g>
+  <text x="150" y="86" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="66" font-weight="800" letter-spacing="-1.5"><tspan fill="#1FA97E">Live</tspan><tspan fill="#14202E">Stage</tspan></text>
+</svg>
