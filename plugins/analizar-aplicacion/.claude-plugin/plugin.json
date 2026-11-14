@@ -1,0 +1,6 @@
+{
+  "name": "analizar-aplicacion",
+  "version": "1.5.0",
+  "description": "Analiza el flujo de una aplicación o web, define sus procesos, inventa el equipo ficticio que los llevaría, prepara el documento HTML para IT y monta la oficina virtual en 8 estilos.",
+  "author": { "name": "Mauricio" }
+}

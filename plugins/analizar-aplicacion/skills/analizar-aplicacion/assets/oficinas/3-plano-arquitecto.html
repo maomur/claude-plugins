@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oficina virtual · Plano de arquitecto</title>
+<script src="datos.js"></script>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: plano cenital en pixel art a escala entera, barra de simulación fija y, debajo, ficha de la persona elegida + quién se sienta en cada zona. */
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#1B2130; --muted:#5A6376; --line:#D4D9E2;
+  --accent:#1F6F62; --accent-soft:#DDEFEA;
+  --ok:#2C8F54; --warn:#B57A0C; --bad:#C63F33;
+  --tag-bg:rgba(255,255,255,.88); --tag-fg:#1B2130; --tag-line:rgba(27,33,48,.35);
+  --frame:#1B2130; --fl-bg:#1B2130; --fl-fg:#FFD23F;
+  --f-display:"Pixelify Sans", "Courier New", monospace;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151E; --surface:#191F2C; --ink:#E6E9F0; --muted:#9BA4B6; --line:#2A3244;
+  --accent:#55C2A9; --accent-soft:#183A35; --ok:#5BC984; --warn:#E3AE3F; --bad:#EF6F62;
+  --frame:#000000; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151E; --surface:#191F2C; --ink:#E6E9F0; --muted:#9BA4B6; --line:#2A3244;
+  --accent:#55C2A9; --accent-soft:#183A35; --ok:#5BC984; --warn:#E3AE3F; --bad:#EF6F62;
+  --frame:#000000; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{padding-block:40px 24px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,56px);line-height:1;margin:10px 0 14px;letter-spacing:.01em;text-wrap:balance}
+.lede{max-width:66ch;color:var(--muted);margin:0}
+.lede strong{color:var(--ink);font-weight:600}
+
+.simbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-block:1px solid var(--line)}
+.simbar .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding-block:12px}
+button.play{font-family:var(--f-display);font-size:16px;font-weight:700;background:var(--accent);color:var(--surface);border:0;padding:9px 16px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);letter-spacing:.02em}
+button.play:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+button.play:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+button.toggle{font-family:var(--f-mono);font-size:12px;background:transparent;color:var(--ink);border:1px solid var(--line);padding:7px 10px;cursor:pointer}
+button.toggle[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.log{flex:1 1 320px;min-width:0;font-family:var(--f-mono);font-size:13px}
+.log.live{font-family:var(--f-body);font-size:16px;font-weight:600}
+.log.live .step{font-family:var(--f-mono);font-weight:500;font-size:13px}
+.log .step{color:var(--muted);margin-right:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;background:var(--c)}
+
+.plan-wrap{padding-block:28px 8px}
+.plan{position:relative;margin:0 auto;max-width:100%;box-shadow:0 0 0 1px var(--line), 0 10px 30px rgba(15,39,71,.25)}
+.plan canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;pointer-events:none}
+.zone{position:absolute;transform:translateY(0);font-family:var(--f-mono);font-size:max(9px,calc(3.1px * var(--s)));letter-spacing:.06em;text-transform:uppercase;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;white-space:nowrap;border:1px solid var(--tag-line)}
+.pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);width:max(24px,calc(9px * var(--s)));height:max(24px,calc(9px * var(--s)));background:transparent;border:0;padding:0;cursor:pointer;border-radius:50%}
+.pin:focus-visible{outline:3px solid #FFD23F;outline-offset:0}
+.pin .tag{position:absolute;left:50%;bottom:calc(100% - 2px);transform:translateX(-50%);font-family:var(--f-display);font-weight:700;font-size:max(10px,calc(3.6px * var(--s)));line-height:1.1;white-space:nowrap;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border:1px solid var(--tag-line);pointer-events:none}
+.plan:not(.names) .pin .tag{display:none}
+.plan:not(.names) .pin:hover .tag,.plan:not(.names) .pin:focus-visible .tag,.plan:not(.names) .pin[aria-pressed="true"] .tag{display:block}
+.pin .st{display:none;font-family:var(--f-mono);font-weight:500;font-size:.72em;letter-spacing:.06em;text-transform:uppercase;margin-left:6px}
+.pin[data-state="working"] .st,.pin[data-state="blocked"] .st{display:inline}
+.plan.running .pin .tag{display:none}
+.plan .pin[data-state="working"] .tag,.plan .pin[data-state="blocked"] .tag{display:block;z-index:3;font-size:max(13px,calc(4.6px * var(--s)));padding:2px 8px;box-shadow:3px 3px 0 #1B2130;animation:salto .9s ease-in-out infinite}
+.plan .pin[data-state="working"] .tag::after,.plan .pin[data-state="blocked"] .tag::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:inherit;border-bottom:0}
+.pin[data-state="working"] .tag::after{border-top-color:#1F6F62}
+.pin[data-state="blocked"] .tag::after{border-top-color:#C63F33}
+@keyframes salto{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-6px)}}
+@media (prefers-reduced-motion: reduce){.plan .pin .tag{animation:none!important}}
+.pin[data-state="working"] .tag{background:#1F6F62;color:#FFFFFF;border-color:#1F6F62}
+.pin[data-state="blocked"] .tag{background:#C63F33;color:#FFFFFF;border-color:#C63F33}
+.pop{position:absolute;pointer-events:auto;z-index:6;width:min(310px,86vw);background:var(--surface);color:var(--ink);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:12px 14px 12px;font-size:13.5px;line-height:1.45}
+.pop-head{display:flex;align-items:flex-start;gap:10px}
+.pop-head h3{font-family:var(--f-display);font-weight:700;font-size:19px;line-height:1.1;margin:0;flex:1;min-width:0}
+.pop-head .role{display:block;font-family:var(--f-body);font-weight:500;font-size:12.5px;color:var(--muted);margin-top:2px}
+.pop-close{background:transparent;border:1px solid var(--line);color:var(--ink);width:26px;height:26px;cursor:pointer;font-size:15px;line-height:1;flex:none}
+.pop .chipst{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border:1px solid currentColor;color:var(--muted);margin:8px 0 6px}
+.pop .chipst[data-s="working"],.lg li[data-s="working"] .t{color:var(--accent)}
+.pop .chipst[data-s="blocked"],.lg li[data-s="blocked"] .t{color:var(--bad)}
+.pop .chipst[data-s="waiting"],.lg li[data-s="waiting"] .t{color:var(--warn)}
+.pop .chipst[data-s="done"],.lg li[data-s="done"] .t{color:var(--ok)}
+.pop .lbl,.ficha .lbl{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 3px}
+.pop .now{font-weight:600}
+.pop .mod{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);word-break:break-word}
+.lg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.pop .lg{max-height:150px;overflow-y:auto}
+.lg li{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.lg .t{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:1px}
+.lg .empty{display:block;color:var(--muted)}
+.flight{position:absolute;z-index:4;transform:translate(-50%,calc(-100% - 6px * var(--s)));font-family:var(--f-mono);font-weight:500;font-size:max(10px,calc(3.3px * var(--s)));white-space:nowrap;background:var(--fl-bg);color:var(--fl-fg);padding:2px 7px;pointer-events:none;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.progress{height:4px;background:var(--line)}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+.pin[data-state="done"] .tag{background:#2C8F54;color:#FFFFFF;border-color:#2C8F54}
+.pin[data-state="waiting"] .tag{background:#B57A0C;color:#FFFFFF;border-color:#B57A0C}
+.plan-note{font-size:13px;color:var(--muted);text-align:center;margin:18px auto 0;max-width:70ch}
+
+.details{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;padding-block:32px 8px}
+@media (max-width:820px){.details{grid-template-columns:1fr}}
+.ficha{background:var(--surface);border:1px solid var(--line);padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.ficha .kicker{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ficha h2{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1.05;margin:0;text-wrap:balance}
+.ficha .meta{font-size:13.5px;color:var(--muted)}
+.ficha .role{font-weight:600}
+.ficha .mod{font-family:var(--f-mono);font-size:12px;color:var(--muted);word-break:break-word}
+.ficha .seat{background:var(--accent-soft);border-left:3px solid var(--accent);padding:8px 12px;font-size:14px}
+.ficha dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.ficha dt{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:3px}
+.ficha dd{margin:0;min-width:0}
+.ficha blockquote{margin:4px 0 0;padding-top:10px;border-top:1px dashed var(--line);font-style:italic}
+.ficha blockquote::before{content:"“";font-family:var(--f-display);color:var(--accent)}
+.ficha blockquote::after{content:"”";font-family:var(--f-display);color:var(--accent)}
+.swatch{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.swatch i{width:12px;height:12px;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+
+.zones{min-width:0}
+.zones h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0 0 12px;border-bottom:2px solid var(--ink);padding-bottom:6px}
+.zones ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.zones li{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.zones .zname{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-body);font-size:13.5px;display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--ink);border:1px solid var(--line);padding:4px 10px 4px 6px;cursor:pointer}
+.chip i{width:12px;height:12px;background:var(--sw);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.chip:hover{border-color:var(--accent)}
+.zones .empty{font-size:13.5px;color:var(--muted)}
+footer{padding-block:40px 56px;color:var(--muted);font-size:13px}
+/* Pantalla completa por defecto: solo la barra de simulación y la escena, sin cabecera ni textos */
+html,body{height:100%}
+body{margin:0;overflow:hidden;display:flex;flex-direction:column}
+.details{display:none}
+.simbar{position:relative;flex:none}
+.simbar .wrap{max-width:none}
+main.wrap{flex:1;min-height:0;width:100%;max-width:none;margin:0;padding:0;display:flex}
+.plan-wrap{flex:1;min-width:0;min-height:0;padding:0;display:flex;align-items:center;justify-content:center}
+/* Foco en quien trabaja: el resto se oscurece y un anillo late a su alrededor */
+.spot{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .35s ease}
+.spot.on{opacity:1}
+.spot .ring{fill:none;stroke:#2FD3A4;stroke-width:3;transform-box:fill-box;transform-origin:center;animation:latido 1.1s ease-in-out infinite}
+.spot .ring2{fill:none;stroke:#FFFFFF;stroke-width:1.5;stroke-opacity:.85}
+@keyframes latido{0%,100%{transform:scale(1);stroke-opacity:1}50%{transform:scale(1.14);stroke-opacity:.45}}
+.plan .pin[data-state="working"] .tag{box-shadow:0 0 0 3px rgba(47,211,164,.5),0 0 22px 4px rgba(47,211,164,.85)}
+@media (prefers-reduced-motion: reduce){.spot .ring{animation:none}.spot{transition:none}}
+/* Fin del Job: cartel grande, confeti con los colores del equipo y un aviso sonoro */
+.fin{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(6,10,20,.55);pointer-events:auto;overflow:hidden;animation:finFondo .4s ease both}
+.fin[hidden]{display:none}
+.fin-card{position:relative;z-index:2;text-align:center;background:#FFFFFF;color:#14202E;border-radius:18px;padding:28px 36px 24px;max-width:min(460px,88%);box-shadow:0 0 0 4px #2FD3A4,0 24px 60px rgba(0,0,0,.45);animation:finEntra .55s cubic-bezier(.2,1.4,.4,1) both}
+.fin-ok{width:72px;height:72px;margin:0 auto 10px;border-radius:50%;background:#1FA97E;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:700;line-height:1;box-shadow:0 0 0 8px rgba(47,211,164,.25)}
+.fin-card h2{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0 0 8px;color:#14202E}
+.fin-job{font-size:15px;margin:0 0 6px;color:#14202E}
+.fin-stats{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.04em;color:#5A6676;margin:0 0 18px}
+.fin-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.fin-btns button{font-family:var(--f-display);font-weight:700;font-size:15px;border-radius:999px;padding:9px 18px;cursor:pointer;border:2px solid #1FA97E}
+.fin-btns .fin-again{background:#1FA97E;color:#FFFFFF}
+.fin-btns .fin-close{background:transparent;color:#1F6F62}
+.fin-btns button:focus-visible{outline:3px solid #14202E;outline-offset:2px}
+.fin i{position:absolute;top:-16px;width:9px;height:14px;border-radius:2px;z-index:1;animation:finCae linear forwards}
+.simbar.fin-on .progress i{background:#2FD3A4;box-shadow:0 0 12px #2FD3A4}
+.log.fin-log{color:#1FA97E;font-weight:700}
+@keyframes finFondo{from{opacity:0}to{opacity:1}}
+@keyframes finEntra{from{opacity:0;transform:scale(.6) translateY(30px)}to{opacity:1;transform:none}}
+@keyframes finCae{to{transform:translate(var(--dx),calc(100vh + 40px)) rotate(var(--rot))}}
+@media (prefers-reduced-motion: reduce){.fin,.fin-card{animation:none}.fin i{display:none}}
+/* Selector de estilo, arriba a la derecha */
+.estilo{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:auto}
+.estilo select{font-family:var(--f-body);font-size:14px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;max-width:200px}
+.estilo select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* Charlas en las pausas */
+.pin .charla{display:none;position:absolute;left:58%;bottom:calc(100% + 1.6em);background:#FFFFFF;border-radius:999px;padding:3px 6px;gap:3px;box-shadow:0 2px 6px rgba(0,0,0,.28);pointer-events:none;z-index:4}
+.pin.habla .charla{display:flex}
+.pin .charla i{width:4px;height:4px;border-radius:50%;background:#8A93A8}
+/* Fin del Job: lo anuncia el jefe, con el informe final */
+.fin.con-jefe{background:radial-gradient(circle at var(--jx) var(--jy),rgba(6,10,20,0) 0 70px,rgba(6,10,20,.6) 120px)}
+.fin-card{max-width:min(520px,92%);max-height:calc(100% - 24px);overflow:auto}
+.fin-jefe{display:flex;align-items:center;gap:12px;text-align:left;margin:0 0 14px}
+.fin-av{flex:none;width:48px;height:48px;border-radius:50%;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;box-shadow:0 0 0 3px #FFFFFF,0 0 0 5px #2FD3A4}
+.fin-quien{font-size:12.5px;color:#5A6676;font-weight:600}
+.fin-dice{font-size:15.5px;color:#14202E;font-style:italic;line-height:1.3;margin-top:2px}
+.fin-tabla{width:100%;border-collapse:collapse;margin:6px 0 16px;font-size:14px;text-align:left}
+.fin-tabla th{font-weight:500;color:#5A6676;padding:6px 0;border-bottom:1px solid #E6E9EF}
+.fin-tabla td{font-weight:700;color:#14202E;text-align:right;padding:6px 0;border-bottom:1px solid #E6E9EF;font-variant-numeric:tabular-nums}
+.fin-tabla tr[data-t="ok"] td{color:#1A8F68}
+.fin-tabla tr[data-t="mal"] td{color:#C63F33}
+.fin-nota{font-size:12.5px;color:#5A6676;margin:-6px 0 14px}
+.fin-nota:empty{display:none}
+.fin.fin-mal .fin-card{box-shadow:0 0 0 4px #E39A1A,0 24px 60px rgba(0,0,0,.45)}
+.fin.fin-mal .fin-av{box-shadow:0 0 0 3px #FFFFFF,0 0 0 5px #E39A1A}
+.pin.anuncia::after{content:"¡Job completado!";position:absolute;left:50%;bottom:calc(100% + 1.7em);transform:translateX(-50%);white-space:nowrap;background:#1FA97E;color:#FFFFFF;font:700 13px/1.2 system-ui,sans-serif;padding:5px 11px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:9;animation:anuncio 1s ease-in-out infinite}
+.pin.anuncia.mal::after{content:"Job detenido";background:#C77A0E}
+@keyframes anuncio{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
+@media (prefers-reduced-motion: reduce){.pin.anuncia::after{animation:none}}
+</style>
+
+<div class="simbar">
+  <div class="wrap">
+    <button class="play" id="play" type="button">▶ Simular un Job</button>
+    <button class="toggle" id="names" type="button" aria-pressed="true">Nombres</button>
+    <button class="toggle" id="fsBtn" type="button" aria-pressed="false">⛶ Pantalla completa</button>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="legend" aria-hidden="true">
+      <span style="--c:var(--warn)">Esperando turno</span>
+      <span style="--c:var(--accent)">Trabajando</span>
+      <span style="--c:var(--bad)">Bloqueado</span>
+      <span style="--c:var(--ok)">Hecho</span>
+    </div>
+    <label class="estilo">Estilo <select id="estilo" aria-label="Cambiar el estilo de la oficina"><option value="1-pixel.html">Pixel art</option><option value="2-isometrica.html">Isométrico</option><option value="3-plano-arquitecto.html" selected>Plano de arquitecto</option><option value="4-ilustracion-plana.html">Ilustración plana</option><option value="5-maqueta-papel.html">Maqueta de papel</option><option value="6-pizarra.html">Pizarra a mano</option><option value="7-holografico.html">Holográfico</option><option value="8-realista-3d.html">3D realista</option></select></label>
+  </div>
+  <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+</div>
+
+<main class="wrap">
+  <figure class="plan-wrap" id="planWrap" style="margin:0">
+    <div class="plan names" id="plan">
+      <canvas id="plano" width="880" height="664" role="img" aria-label="Plano técnico de la oficina, con diecisiete personas en sus puestos."></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </figure>
+
+  <div class="details">
+    <article class="ficha" id="ficha" aria-live="polite"></article>
+    <section class="zones">
+      <h2>Quién se sienta dónde</h2>
+      <ol id="zoneList"></ol>
+    </section>
+  </div>
+</main>
+
+
+<script>
+if(!window.OFICINA){document.body.innerHTML='<p style="padding:24px;font:16px system-ui">Falta el archivo <b>datos.js</b> en la misma carpeta que esta página.</p>';throw new Error('Falta datos.js');}
+const OFICINA=window.OFICINA, EMPRESA=OFICINA.empresa||'', JOB=OFICINA.job||{nombre:'',resumen:''};
+const salaNombre=k=>(OFICINA.ZONES||[]).filter(z=>z.sala===k).map(z=>z.name).join(' · ');   // si dos áreas comparten sala, salen las dos
+document.title=(EMPRESA?'Oficina de '+EMPRESA+' · ':'')+'Plano de arquitecto';
+/* ---------- Personas (mismas fichas que el reparto) ---------- */
+const T = OFICINA.T;
+const PRIMERA=(OFICINA.primera&&T[OFICINA.primera])?OFICINA.primera:Object.keys(T)[0];
+
+/* Puesto de cada persona en el plano (coordenadas en píxeles del plano, mirando hacia su mesa) */
+const SEAT = OFICINA.SEAT;
+for(const q of Object.values(SEAT))if(q.x===320&&q.y===36){q.x=326;q.y=48;}   // el puesto del estudio se centró en su sala
+const OCUPA=(x,y)=>Object.values(SEAT).some(q=>q.x===x&&q.y===y);
+const TRIPS={};   // quién está fuera de su mesa (ver «Vida en la oficina»)
+function where(id){const tr=TRIPS[id];return tr?tr.pos:SEAT[id];}
+
+const ZONES = OFICINA.ZONES;
+
+/* ---------- Plano técnico ---------- */
+// Mismas coordenadas que la versión cenital (384 × 256 unidades; 1 unidad = 5 cm). Margen para cotas y cajetín.
+const W=440, H=332, OX=34, OY=30;
+const cv=document.getElementById('plano'), mainCtx=cv.getContext('2d');
+let ctx=mainCtx, S=0;
+const bg=document.createElement('canvas');
+const BG='#1B4A8F', LN='#E8F1FF', LN2='rgba(232,241,255,.6)', LN3='rgba(232,241,255,.3)', FILL='rgba(232,241,255,.07)', INK='#0F2747';
+function shade(hex,a){const n=parseInt(hex.slice(1),16);let r=n>>16,gg=(n>>8)&255,b=n&255;const f=v=>Math.max(0,Math.min(255,Math.round(a<0?v*(1+a):v+(255-v)*a)));return '#'+((1<<24)+(f(r)<<16)+(f(gg)<<8)+f(b)).toString(16).slice(1);}
+function lum(hex){const n=parseInt(hex.slice(1),16);return (0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;}
+function sr(x,y,w,h,lw,col,fill,r){ctx.beginPath();r?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);if(fill){ctx.fillStyle=fill;ctx.fill();}if(lw){ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.stroke();}}
+function ln(x1,y1,x2,y2,lw,col,dash){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);}
+function cir(x,y,r,lw,col,fill,dash){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill();}if(lw){ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);}}
+function txt(s,x,y,size,col,align,weight){ctx.font=`${weight||500} ${size}px "JetBrains Mono", ui-monospace, Menlo, monospace`;ctx.fillStyle=col;ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+
+/* ---------- Símbolos de arquitectura ---------- */
+function wall(x,y,w,h){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.fillStyle='rgba(232,241,255,.16)';ctx.fill();ctx.clip();
+  ctx.beginPath();for(let k=-h;k<w;k+=1.5){ctx.moveTo(x+k,y+h);ctx.lineTo(x+k+h,y);}ctx.lineWidth=.3;ctx.strokeStyle=LN2;ctx.stroke();ctx.restore();sr(x,y,w,h,.7,LN);}
+function glassW(x,y,w,h){sr(x,y,w,h,.45,LN,'rgba(150,215,255,.22)');if(w>h)ln(x,y+h/2,x+w,y+h/2,.3,LN2);else ln(x+w/2,y,x+w/2,y+h,.3,LN2);}
+function win(x,y,w,h){sr(x,y,w,h,.45,LN,BG);if(w>h){ln(x,y+h*.33,x+w,y+h*.33,.35,LN);ln(x,y+h*.66,x+w,y+h*.66,.35,LN);}else{ln(x+w*.33,y,x+w*.33,y+h,.35,LN);ln(x+w*.66,y,x+w*.66,y+h,.35,LN);}}
+function door(hx,hy,len,a0,a1){ln(hx,hy,hx+Math.cos(a1)*len,hy+Math.sin(a1)*len,.7,LN);ctx.beginPath();ctx.arc(hx,hy,len,a0,a1,a1<a0);ctx.setLineDash([1.2,1]);ctx.lineWidth=.35;ctx.strokeStyle=LN2;ctx.stroke();ctx.setLineDash([]);}
+function desk(x,y,w,h){sr(x,y,w,h,.6,LN,FILL);}
+function monitor(x,y,w,face){sr(x,y,w,1.6,.45,LN,'rgba(232,241,255,.35)');ln(x+w/2,face==='down'?y:y+1.6,x+w/2,face==='down'?y-1:y+2.6,.4,LN);sr(x+1,face==='down'?y+3.4:y-3.4-1.8,w-2,1.8,.3,LN2);}
+function laptop(x,y,face){sr(x,y,9,6,.4,LN2,FILL);ln(x,face==='down'?y+.8:y+5.2,x+9,face==='down'?y+.8:y+5.2,.5,LN);}
+function chairSym(x,y,dir,ghost){const c=ghost?LN3:LN2;sr(x-3.6,y-3.6,7.2,7.2,.45,c,null,1.4);
+  const b={up:[x-3.6,y+3.6,x+3.6,y+3.6],down:[x-3.6,y-3.6,x+3.6,y-3.6],right:[x-3.6,y-3.6,x-3.6,y+3.6],left:[x+3.6,y-3.6,x+3.6,y+3.6]}[dir];ln(b[0],b[1],b[2],b[3],1.3,c);}
+function plant(x,y,r){r=r||4;cir(x,y,r*.55,.4,LN2);for(let i=0;i<7;i++){const a=i/7*Math.PI*2;ctx.beginPath();ctx.ellipse(x+Math.cos(a)*r*.6,y+Math.sin(a)*r*.6,r*.45,r*.2,a,0,Math.PI*2);ctx.lineWidth=.35;ctx.strokeStyle=LN2;ctx.stroke();}}
+function tall(x,y,w,h){sr(x,y,w,h,.55,LN,FILL);ln(x,y,x+w,y+h,.3,LN2);ln(x+w,y,x,y+h,.3,LN2);}
+function roundTable(x,y,r){cir(x,y,r,.6,LN,FILL);cir(x,y,r-1.2,.25,LN3);}
+function rugR(x,y,w,h){sr(x,y,w,h,.35,LN3,null);sr(x+1.6,y+1.6,w-3.2,h-3.2,.25,LN3,null);}
+function paper(x,y,w,h){sr(x,y,w||5,h||6,.3,LN2);}
+
+function drawScene(){
+  // fondo y cuadrícula (1 cuadro = 40 cm; línea gruesa cada 2 m)
+  ctx.fillStyle=BG;ctx.fillRect(-OX,-OY,W,H);
+  for(let x=0;x<=384;x+=8){ln(x,0,x,256,x%40===0?.3:.18,x%40===0?'rgba(255,255,255,.13)':'rgba(255,255,255,.06)');}
+  for(let y=0;y<=256;y+=8){ln(0,y,384,y,y%40===0?.3:.18,y%40===0?'rgba(255,255,255,.13)':'rgba(255,255,255,.06)');}
+
+  // alfombras y felpudo
+  rugR(22,12,64,50);rugR(140,104,122,58);rugR(216,180,50,32);sr(30,242,28,9,.35,LN3,null);
+
+  // muros exteriores
+  wall(0,0,384,4);wall(0,0,4,256);wall(380,0,4,256);wall(0,252,30,4);wall(58,252,326,4);
+  for(const [x,w] of [[14,26],[56,40],[136,46],[200,52],[288,32],[338,34]])win(x,0,w,4);
+  for(const [y,h] of [[96,40],[190,30]]){win(0,y,4,h);}
+  for(const [y,h] of [[96,50],[190,30]]){win(380,y,4,h);}
+  sr(30,252.6,15,1.4,.4,LN,'rgba(150,215,255,.3)');sr(43,253.8,15,1.4,.4,LN,'rgba(150,215,255,.3)');   // puerta corredera
+  ln(30,259,58,259,.3,LN2);txt('ENTRADA',44,262.5,2.6,LN2,'center');
+  // tabiques
+  glassW(120,4,2,78);glassW(4,80,84,2);glassW(106,80,16,2);door(88,80,18,0,-Math.PI/2);
+  wall(270,4,3,79);wall(270,80,30,3);wall(318,80,62,3);door(300,80,18,0,-Math.PI/2);
+  wall(270,174,3,78);wall(270,174,30,3);wall(318,174,62,3);door(300,177,18,0,Math.PI/2);
+  wall(4,172,58,3);wall(92,172,30,3);
+
+  /* Dirección */
+  tall(5,8,7,42);desk(30,28,44,12);monitor(46,36,12,'up');sr(34,31,6,7,.4,LN2,'rgba(232,241,255,.2)');paper(64,31);cir(69,37,1.3,.4,LN2);
+  chairSym(44,48,'up');chairSym(60,48,'up');roundTable(100,60,6);chairSym(90,60,'right');chairSym(110,60,'left');
+  plant(112,12,5);plant(12,70);
+  /* Campo */
+  for(let i=0;i<5;i++)tall(5,88+i*11,9,10);
+  desk(20,96,28,11);monitor(28,97,10,'down');sr(22,98,5,4,.35,LN2);ln(22,100,27,100,.35,LN2);
+  sr(50,98,7,7,.45,LN,FILL);for(let i=0;i<3;i++)ln(51.5+i*2,99,51.5+i*2,104,.3,LN2);
+  sr(62,83,34,2,.45,LN,FILL);for(let i=0;i<8;i++)sr(63.5+i*4,83.4,2.4,1.2,.25,LN2,'rgba(232,241,255,.35)');
+  desk(64,96,28,11);laptop(73,98,'down');paper(85,99,4,5);sr(95,109,6,7,.4,LN2,null,1.2);
+  desk(60,140,36,19);sr(62,142,32,15,.25,LN3);sr(73,146,9,7,.45,LN);ln(77.5,146,77.5,153,.3,LN2);
+  for(const [sx,dir] of [[53,1],[103,-1]]){sr(sx-4,136,8,8,.5,LN,FILL);ln(sx,144,sx,148,.4,LN2);ln(sx+dir*4,140,78,149,.25,LN3,[1.2,1]);ln(sx,144,78,152,.25,LN3,[1.2,1]);}
+  plant(112,92);plant(112,163);
+  /* Recepción */
+  ctx.beginPath();ctx.moveTo(16,206);ctx.lineTo(76,206);ctx.lineTo(76,184);ctx.lineTo(83,184);ctx.lineTo(83,213);ctx.lineTo(16,213);ctx.closePath();ctx.fillStyle=FILL;ctx.fill();ctx.lineWidth=.6;ctx.strokeStyle=LN;ctx.stroke();
+  monitor(48,208,10,'up');cir(35.5,209.5,1.3,.45,LN);
+  chairSym(11,224,'right');chairSym(11,236,'right');cir(102,226,2.4,.45,LN2);for(let i=0;i<4;i++){const a=i*Math.PI/2;ln(102,226,102+Math.cos(a)*3.6,226+Math.sin(a)*3.6,.3,LN2);}
+  plant(112,184,5);plant(110,242);
+  /* Redacción */
+  sr(148,5,50,2.4,.4,LN,FILL);for(let i=0;i<11;i++)sr(149+i*4.4,5.4,2.6,1.6,.25,LN2,'rgba(255,226,107,.35)');
+  desk(160,30,32,11);desk(196,30,32,11);desk(160,41,32,11);desk(196,41,32,11);sr(160,40.4,68,1.2,.4,LN,'rgba(232,241,255,.25)');
+  monitor(171,36,10,'up');laptop(207,32,'up');paper(220,32,4,5);monitor(171,43,10,'down');sr(186,44,5,7,.4,LN2);ln(186,46,191,46,.25,LN2);ln(186,48.5,191,48.5,.25,LN2);
+  monitor(207,43,10,'down');sr(221,44,4,6,.35,LN2);
+  tall(242,34,11,46);plant(130,88);plant(262,88);plant(262,12);
+  /* Mesa larga */
+  desk(148,124,104,16);for(const sx of [166,200,234])paper(sx-3,125);for(const sx of [183,217])paper(sx-3,134);
+  cir(200,132,2,.45,LN);ln(174,137.5,182,137.5,.35,LN2);ln(174.5,134,174.5,138,.35,LN2);cir(224.5,136.5,1.4,.4,LN2);
+  for(const [x,w] of [[128,52],[196,66]]){sr(x,168,w,6,.45,LN,FILL);for(let xx=x+3;xx<x+w-2;xx+=5)cir(xx,171,1.6,.3,LN2);}
+  /* Office */
+  sr(226,250.5,14,3,.4,LN,FILL);txt('WC',233,246.6,2.6,LN,'center',700);
+  sr(128,240,74,11,.6,LN,FILL);sr(132,242,10,6,.4,LN2);sr(150,242,10,6,.4,LN,null,1.5);sr(151.5,243.2,7,3.6,.3,LN2,null,1.2);cir(155,245,.6,.3,LN2);sr(184,241,8,8,.4,LN2);cir(188,245,2,.3,LN2);
+  sr(204,234,13,17,.55,LN,FILL);txt('NEV',210.5,242.5,2.4,LN2,'center');
+  roundTable(160,208,9);chairSym(160,196,'down');chairSym(160,221,'up');chairSym(147,208,'right');chairSym(173,208,'left');
+  sr(222,183,40,11,.6,LN,FILL);sr(222,183,40,3,.4,LN2);sr(222,183,3,11,.4,LN2);sr(259,183,3,11,.4,LN2);ln(235,186,235,194,.3,LN2);ln(248,186,248,194,.3,LN2);
+  sr(230,199,24,8,.5,LN,FILL);cir(128,184,3,.45,LN);cir(128,184,1.6,.3,LN2);plant(262,246,5);
+  /* Estudio */
+  desk(302,30,48,12);monitor(309,31,12,'down');monitor(325,31,12,'down');sr(340,34,8,6,.4,LN2,'rgba(232,241,255,.2)');
+  sr(352,52,24,17,.55,LN,FILL);for(let xx=356;xx<376;xx+=4)ln(xx,52,xx,69,.2,LN3);for(let yy=56;yy<69;yy+=4)ln(352,yy,376,yy,.2,LN3);
+  for(const x of [334,346,358])sr(x,4.6,9,1.4,.3,LN2,'rgba(232,241,255,.3)');
+  cir(290,64,6,.5,LN,FILL);cir(289,63,3,.3,LN3);plant(374,12);
+  /* Calidad */
+  desk(300,104,36,12);monitor(313,105,10,'down');paper(302,106);cir(330,109,2,.45,LN);ln(331.5,110.5,334,113,.5,LN);
+  sr(358,88,16,11,.55,LN,FILL);sr(360,90,12,3,.3,LN2);sr(376,100,3,40,.45,LN,'rgba(232,241,255,.25)');
+  if(OCUPA(352,152)){desk(334,134,36,12);monitor(340,135,12,'down');}else{desk(344,140,26,14);chairSym(338,147,'right');chairSym(376,147,'left');}plant(278,164);plant(282,92);
+  /* Administración */
+  tall(320,179,44,6);desk(306,206,40,12);monitor(316,207,10,'down');sr(332,208,6,7,.4,LN2);ctx.beginPath();ctx.ellipse(313,210.5,3,2,0,0,Math.PI*2);ctx.lineWidth=.4;ctx.strokeStyle=LN2;ctx.stroke();
+  ctx.save();ctx.beginPath();ctx.rect(362,234,14,14);ctx.clip();ctx.beginPath();for(let k=-14;k<14;k+=2){ctx.moveTo(362+k,248);ctx.lineTo(376+k,234);ctx.moveTo(362+k,234);ctx.lineTo(376+k,248);}ctx.lineWidth=.25;ctx.strokeStyle=LN3;ctx.stroke();ctx.restore();sr(362,234,14,14,.6,LN);
+  plant(280,246,5);plant(372,186);
+
+  // nombres de las salas con su superficie (1 unidad = 5 cm → 400 unidades² = 1 m²)
+  const ROOMS=[['despacho',4,4,116,76,8,72],['izquierda',4,82,116,90,20,166],['recepcion',4,175,116,77,8,180],['isla',124,4,146,94,128,72],
+    ['mesa-larga',124,98,146,70,128,101],['office',124,175,146,77,176,182],['arriba-derecha',273,4,107,76,306,73],['derecha',272,83,108,91,288,166],['abajo-derecha',273,177,107,75,276,191]];
+  for(const [k,x,y,w,h,lx,ly] of ROOMS){const m2=(w*h/400).toFixed(1).replace('.',','), n=salaNombre(k).toUpperCase();
+    ctx.font='600 6.6px "JetBrains Mono", ui-monospace, Menlo, monospace';const fz=Math.min(6.6,6.6*(x+w-lx-4)/Math.max(1,ctx.measureText(n).width));
+    txt(n,lx,ly-1.5,fz,LN,'left',600);txt(`${m2} m²`,lx,ly+4,2.5,LN2,'left',400);}
+
+  // cotas
+  const cota=(x1,y1,x2,y2,label,vert)=>{ln(x1,y1,x2,y2,.3,LN2);
+    for(const [x,y] of [[x1,y1],[x2,y2]]){vert?ln(x-1.6,y,x+1.6,y,.3,LN2):ln(x,y-1.6,x,y+1.6,.3,LN2);vert?ln(x-1,y+1,x+1,y-1,.4,LN):ln(x-1,y+1,x+1,y-1,.4,LN);}
+    if(vert){ctx.save();ctx.translate(x1-2.4,(y1+y2)/2);ctx.rotate(-Math.PI/2);txt(label,0,0,2.6,LN,'center');ctx.restore();}else txt(label,(x1+x2)/2,y1-2.4,2.6,LN,'center');};
+  cota(0,-16,384,-16,'19,20 m');
+  cota(0,-8,122,-8,'6,10');cota(122,-8,272,-8,'7,50');cota(272,-8,384,-8,'5,60');
+  cota(-18,0,-18,256,'12,80 m',true);
+  cota(-10,0,-10,82,'4,10',true);cota(-10,82,-10,174,'4,60',true);cota(-10,174,-10,256,'4,10',true);
+
+  // norte, escala gráfica y cajetín
+  const nx=10,ny=284;cir(nx,ny,6,.5,LN);ctx.beginPath();ctx.moveTo(nx,ny-6);ctx.lineTo(nx+2.4,ny+3);ctx.lineTo(nx,ny+1.4);ctx.closePath();ctx.fillStyle=LN;ctx.fill();txt('N',nx,ny-9,3,LN,'center',700);
+  const bx=24,by=286;for(let i=0;i<5;i++)sr(bx+i*20,by,20,2.4,.35,LN,i%2?BG:'rgba(232,241,255,.6)');
+  ['0','1','2','3','4','5 m'].forEach((s,i)=>txt(s,bx+i*20,by+5.4,2.4,LN2,'center'));txt('ESCALA GRÁFICA · 1 CUADRO = 40 CM',bx,by-3.6,2.3,LN2);
+  const cx=224,cy=274,cw=160,ch=24;sr(cx,cy,cw,ch,.6,LN);ln(cx,cy+10,cx+cw,cy+10,.35,LN);ln(cx+100,cy+10,cx+100,cy+ch,.35,LN);
+  txt(('OFICINA DE '+EMPRESA+' · PLANTA GENERAL').toUpperCase(),cx+4,cy+5.2,3.2,LN,'left',700);
+  txt('Distribución del equipo ficticio',cx+4,cy+14.4,2.4,LN2);txt('Escala 1:100 · cotas en metros',cx+4,cy+19.6,2.4,LN2);
+  txt('LÁMINA',cx+104,cy+14,2.2,LN2);txt('A-01',cx+104,cy+19.6,3.4,LN,'left',700);txt('nov. 2026',cx+130,cy+19.6,2.4,LN2);
+}
+
+/* ---------- Personas como símbolo: círculo con iniciales ---------- */
+const STATES=['idle','waiting','working','blocked','done'];
+const ids=Object.keys(T);
+const state=Object.fromEntries(ids.map(id=>[id,'idle']));
+let selected=PRIMERA, frame=0;
+const AT=(x,y)=>ids.find(id=>SEAT[id].x===x&&SEAT[id].y===y)||'_';
+const P_RECEP=AT(46,200), P_FOTO=AT(77,134), P_CAJA=AT(326,224);
+const NATIVOS=ids.filter(id=>[[166,118],[200,118],[234,118],[183,146],[217,146]].some(([x,y])=>SEAT[id].x===x&&SEAT[id].y===y));
+const HALO={working:'#5EF0C2',blocked:'#FF7A70',waiting:'#FFD15C'};
+const DIRV={up:[0,-1],down:[0,1],right:[1,0],left:[-1,0]};
+const initials=id=>{const w=T[id].name.split(' ').filter(s=>!/[«»]/.test(s));return (w[0][0]+w[w.length-1][0]).toUpperCase();};
+function person(id){
+  const p=where(id), t=T[id], st=state[id], [fx,fy]=DIRV[p.dir];
+  if(p.hide)return;
+  if(timer&&HALO[st]){const c=HALO[st];const k=reduce?0:(frame%10)/10;
+    cir(p.x,p.y,10,0,null,c+'2E');
+    ctx.globalAlpha=1-k;cir(p.x,p.y,9+k*8,.6,c,null,[1.4,1]);ctx.globalAlpha=1;}
+  if(!p.standing)chairSym(p.x-fx*1.2,p.y-fy*1.2,p.dir,true);
+  // hombros, perpendiculares a la mirada
+  ctx.beginPath();ctx.ellipse(p.x-fx*.6,p.y-fy*.6,fx?3.2:6.4,fx?6.4:3.2,0,0,Math.PI*2);ctx.fillStyle=shade(t.color,.35);ctx.fill();ctx.lineWidth=.5;ctx.strokeStyle=LN;ctx.stroke();
+  // marca de hacia dónde mira
+  const tx=p.x+fx*6.6, ty=p.y+fy*6.6, px=-fy, py=fx;
+  ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(p.x+fx*4.2+px*1.8,p.y+fy*4.2+py*1.8);ctx.lineTo(p.x+fx*4.2-px*1.8,p.y+fy*4.2-py*1.8);ctx.closePath();ctx.fillStyle=LN;ctx.fill();
+  cir(p.x,p.y,4.6,.7,LN,t.color);
+  txt(initials(id),p.x,p.y+.2,3.3,lum(t.color)>.6?INK:'#FFFFFF','center',700);
+}
+function badge(id){
+  const st=state[id];if(st==='idle')return;const p=where(id);if(p.hide)return;const x=p.x+5.2,y=p.y-5.2;
+  const c={working:'#14B88C',done:'#2C8F54',blocked:'#E2443A',waiting:'#D99A0C'}[st];
+  cir(x,y,2.8,.5,LN,c);
+  ctx.strokeStyle='#FFFFFF';ctx.fillStyle='#FFFFFF';ctx.lineWidth=.6;ctx.lineCap='round';
+  if(st==='done'){ctx.beginPath();ctx.moveTo(x-1.3,y);ctx.lineTo(x-.3,y+1);ctx.lineTo(x+1.4,y-1);ctx.stroke();}
+  if(st==='blocked'){ln(x,y-1.4,x,y+.3,.7,'#FFFFFF');cir(x,y+1.2,.35,0,null,'#FFFFFF');}
+  if(st==='working'){const k=Math.floor(frame/2)%3;[-1.2,0,1.2].forEach((dx,i)=>cir(x+dx,y+(i===k?-.4:.3),.4,0,null,'#FFFFFF'));}
+  if(st==='waiting'){ctx.beginPath();ctx.moveTo(x-1.1,y-1.3);ctx.lineTo(x+1.1,y-1.3);ctx.lineTo(x-1.1,y+1.3);ctx.lineTo(x+1.1,y+1.3);ctx.closePath();ctx.stroke();}
+}
+
+/* ---------- Detalles que cambian con la simulación ---------- */
+function props(){
+  const holder=NATIVOS.find(id=>state[id]==='working');
+  if(holder){const p=SEAT[holder];const py=p.dir==='down'?126.5:135.5;ln(p.x+1,py,p.x+4,py+3,.9,'#FFD15C');}
+  else ln(200,131,201.6,128.6,.9,'#FFD15C');
+  if(state[P_RECEP]==='working'&&frame%4<2)for(const a of [-2.4,-1.6,-.8]){ln(35.5+Math.cos(a)*2.4,209.5+Math.sin(a)*2.4,35.5+Math.cos(a)*4,209.5+Math.sin(a)*4,.4,'#FFD15C');}
+  if(state[P_RECEP]==='blocked'){sr(17,207,15,5,.4,LN,'#FFFFFF');txt('VUELVO',24.5,209.6,2.2,'#C63F33','center',700);}
+  if(state[P_FOTO]==='working'&&frame%8===0)for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ln(77.5+Math.cos(a)*6,149.5+Math.sin(a)*6,77.5+Math.cos(a)*10,149.5+Math.sin(a)*10,.5,'#FFF6C2');}
+  const roll=state[P_CAJA]==='working'?3+(frame%10):state[P_CAJA]==='done'?12:2;ln(335,215,335,215+roll,.8,'#FFFFFF');
+  if(state[P_CAJA]==='blocked'){sr(300,168,18,5,.4,LN,'#FFFFFF');txt('CERRADO',309,170.6,2.2,'#C63F33','center',700);}
+}
+
+function render(){
+  if(!S)return;
+  ctx=mainCtx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(bg,0,0);ctx.setTransform(S,0,0,S,S*OX,S*OY);
+  props();
+  for(const id of ids)if(TRIPS[id]&&!SEAT[id].standing){const q=SEAT[id],[gx,gy]=DIRV[q.dir];chairSym(q.x-gx*1.2,q.y-gy*1.2,q.dir,true);}
+  for(const id of [...ids.filter(i=>!TRIPS[i]),...ids.filter(i=>TRIPS[i])])person(id);
+  if(timer){const pulse=reduce?0:(frame%6<3?0:.8);for(const id of ids){const st=state[id];if(st==='working'||st==='blocked'){const p=where(id);cir(p.x,p.y,8.4+pulse,1.4,HALO[st]);}}}
+  for(const id of ids)badge(id);
+  if(!timer&&selected&&(reduce||frame%8<6)){const p=where(selected);cir(p.x,p.y,9.5,.9,'#FFE26B',null,[1.6,1.2]);}
+  drawFlights(performance.now());
+}
+function buildBg(){bg.width=cv.width;bg.height=cv.height;ctx=bg.getContext('2d');ctx.setTransform(S,0,0,S,S*OX,S*OY);drawScene();ctx=mainCtx;}
+
+/* ---------- Entregas: el recorrido se dibuja como una línea de flujo ---------- */
+const ITEM_COLOR={ticket:'#FFD15C',box:'#E9C99A',photos:'#8FD8FF',folder:'#F0D59A',postit:'#FFF07A',pen:'#FFD15C',sign:'#FF7A70',zip:'#C9D2DE'};
+const ITEM_LETTER={ticket:'J',box:'P',photos:'F',folder:'T',postit:'K',pen:'✒',sign:'!',zip:'Z'};
+let flights=[], animOn=false;
+function posOf(id){return id==='door'?{x:44,y:248}:{x:SEAT[id].x,y:SEAT[id].y};}
+function drawFlights(now){
+  if(!flights.length)return;
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  flights=flights.filter(fl=>{
+    const t=(now-fl.start)/fl.dur;
+    if(t<0)return true;
+    if(t>2.2){fl.tag.remove();return false;}
+    const a=posOf(fl.from), b=posOf(fl.to);
+    const lift=Math.min(40,Math.hypot(b.x-a.x,b.y-a.y)*.3);
+    const cx=(a.x+b.x)/2, cy=Math.min(a.y,b.y)-lift;
+    const pt=u=>({x:(1-u)*(1-u)*a.x+2*(1-u)*u*cx+u*u*b.x, y:(1-u)*(1-u)*a.y+2*(1-u)*u*cy+u*u*b.y});
+    const e=reduce?1:ease(Math.min(1,t)), col=ITEM_COLOR[fl.item];
+    ctx.beginPath();for(let u=0;u<=e+.001;u+=.02){const q=pt(Math.min(u,e));u?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
+    ctx.setLineDash([2,1.4]);ctx.lineWidth=.8;ctx.strokeStyle=col;ctx.stroke();ctx.setLineDash([]);
+    const p=pt(e), p0=pt(Math.max(0,e-.03)), ang=Math.atan2(p.y-p0.y,p.x-p0.x);
+    if(t>=1&&t<1.6){ctx.globalAlpha=1-(t-1)/.6;cir(p.x,p.y,5+(t-1)*16,.8,col);ctx.globalAlpha=1;}
+    if(t<1){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(4.6,0);ctx.lineTo(1.4,-2);ctx.lineTo(1.4,2);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.restore();}
+    sr(p.x-3.2,p.y-3.2,6.4,6.4,.6,INK,col,1.2);txt(ITEM_LETTER[fl.item],p.x,p.y+.2,3.4,INK,'center',700);
+    fl.tag.style.left=pct(p.x+OX,W);fl.tag.style.top=pct(p.y+OY-4,H);fl.tag.hidden=false;
+    return true;
+  });
+}
+function anim(){if(flights.length){render();requestAnimationFrame(anim);}else{animOn=false;render();}}
+function launch(list,ms){
+  list.forEach(([from,to,item,label],k)=>{
+    const tag=document.createElement('div');tag.className='flight';tag.hidden=true;
+    tag.textContent=`${label} → ${T[to].short}`;overlay.appendChild(tag);
+    flights.push({from,to,item,label,tag,start:performance.now()+k*350,dur:Math.min(1300,ms*.55)});
+  });
+  if(!animOn&&flights.length){animOn=true;requestAnimationFrame(anim);}
+}
+function clearFlights(){flights.forEach(fl=>fl.tag.remove());flights=[];}
+
+let timer=null;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+setInterval(()=>{frame++;if(!animOn)render();},reduce?1000:125);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(S){buildBg();render();}});
+
+/* ---------- Capa HTML: zonas, nombres y fichas ---------- */
+const plan=document.getElementById('plan'), overlay=document.getElementById('overlay'), wrapEl=document.getElementById('planWrap');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct=(v,m)=>(v/m*100)+'%';
+// Los nombres de las salas van dibujados en el propio plano.
+const pins={}, chips={};
+for(const id of ids){const p=where(id);const b=document.createElement('button');b.type='button';b.className='pin';
+  b.style.left=pct(p.x+OX,W);b.style.top=pct(p.y+OY,H);b.setAttribute('aria-label',`${T[id].name}, ${T[id].role}`);b.setAttribute('aria-pressed','false');b.dataset.state='idle';
+  b.innerHTML=`<span class="tag">${esc(T[id].short)}<span class="st"></span></span>`;b.addEventListener('click',e=>{e.stopPropagation();select(id);openPop(id);});overlay.appendChild(b);pins[id]=b;}
+/* ---------- Vida en la oficina ----------
+   Quien no tiene tarea del job se levanta de vez en cuando (café, agua, comer, sofá o baño):
+   pocas veces, como mucho dos a la vez. Al cruzarse se apartan a su derecha; si van detrás de
+   alguien, esperan. Si el job les necesita, vuelven deprisa a su mesa.
+   Las rutas van por los pasillos del plano, que es el mismo en los ocho estilos. */
+const VIDA=!reduce;
+const ESC=(x,y)=>x+','+y;
+// desde cada puesto hasta el pasillo: [pasillo, puntos]. Dirección y recepción no se mueven.
+const SALIDA={
+  [ESC(34,113)]:['L',[[34,125],[112,125],[127,125]]],   [ESC(78,113)]:['L',[[78,123],[112,123],[127,123]]],
+  [ESC(77,134)]:['L',[[77,126],[112,126],[127,126]]],
+  [ESC(176,24)]:['L',[[150,24],[150,96],[138,100],[127,104]]], [ESC(212,24)]:['R',[[236,24],[236,96],[266,100]]],
+  [ESC(176,58)]:['L',[[176,66],[150,66],[150,96],[138,100],[127,104]]], [ESC(212,58)]:['R',[[212,66],[236,66],[236,96],[266,100]]],
+  [ESC(166,118)]:['L',[[166,110],[135,110],[127,112]]], [ESC(200,118)]:['L',[[200,110],[135,110],[127,112]]],
+  [ESC(234,118)]:['R',[[234,110],[260,110],[266,112]]],
+  [ESC(183,146)]:['G',[[183,155],[188,163],[188,178]]], [ESC(217,146)]:['G',[[217,155],[188,163],[188,178]]],
+  [ESC(318,122)]:['R',[[318,133],[290,133],[268,133]]], [ESC(352,152)]:['R',[[352,162],[296,162],[280,150],[268,150]]],
+  [ESC(326,48)]:['R',[[326,60],[309,70],[309,88],[290,100],[266,100]]],
+  [ESC(326,224)]:['R',[[326,236],[298,236],[298,192],[309,184],[309,170],[290,170],[266,168]]],
+};
+const PASILLO={L:[[127,160],[188,163],[188,178]],R:[[266,160],[188,163],[188,178]],G:[]};
+// sitios de pausa en el office (todos se alcanzan desde su entrada, 188,178)
+const SITIOS=[
+  {k:'micro',    p:[[186,226],[137,226],[137,234]], ang:Math.PI,    act:'comer', s:[8,14]},
+  {k:'fregadero',p:[[186,226],[155,226],[155,234]], ang:Math.PI,    act:'agua',  s:[6,10]},
+  {k:'cafe',     p:[[190,234]],                     ang:Math.PI,    act:'cafe',  s:[12,20]},
+  {k:'nevera',   p:[[200,222],[210,229]],           ang:Math.PI,    act:'comer', s:[8,12]},
+  {k:'agua',     p:[[150,184],[134,190]],           ang:-Math.PI/2, act:'agua',  s:[8,12]},
+  {k:'agua2',    p:[[150,186],[147,193]],           ang:-Math.PI/2, act:'agua',  s:[8,12]},
+  {k:'mesa',     p:[[186,208],[174,208]],           ang:-Math.PI/2, act:'comer', s:[20,30]},
+  {k:'mesa2',    p:[[150,184],[147,198],[147,208]], ang:Math.PI/2,  act:'comer', s:[20,30]},
+  {k:'sofa',     p:[[205,182],[232,189]],           ang:Math.PI,    act:'cafe',  s:[15,25]},
+  {k:'sofa2',    p:[[205,182],[250,189]],           ang:Math.PI,    act:'cafe',  s:[15,25]},
+  {k:'wc',       p:[[200,222],[221,230],[223,242],[233,249]], ang:Math.PI, act:null, s:[10,16], hide:true},
+];
+const PAREJA={micro:'fregadero',fregadero:'micro',cafe:'nevera',nevera:'cafe',agua:'agua2',agua2:'agua',mesa:'mesa2',mesa2:'mesa',sofa:'sofa2',sofa2:'sofa'};
+const VEL=24;   // unidades del plano por segundo
+let nextTrip=performance.now()+8000;
+const libre=id=>state[id]==='idle'||state[id]==='done';
+const DIR4=a=>{const d=((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);return d<Math.PI/4||d>=7*Math.PI/4?'up':d<3*Math.PI/4?'right':d<5*Math.PI/4?'down':'left';};
+function plen(P){let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return L;}
+function along(P,d){d=Math.max(0,d);for(let i=1;i<P.length;i++){const [ax,ay]=P[i-1],[bx,by]=P[i],l=Math.hypot(bx-ax,by-ay);
+  if(d<=l||i===P.length-1){const k=l?Math.min(1,d/l):1;return {x:ax+(bx-ax)*k,y:ay+(by-ay)*k,ang:Math.atan2(bx-ax,-(by-ay)),i};}d-=l;}
+  return {x:P[0][0],y:P[0][1],ang:0,i:0};}
+function andando(x,y,ang){return {x,y,ang,dir:DIR4(ang),standing:true,walk:true};}
+function salir(id,sitio,t){const q=SEAT[id],sal=SALIDA[ESC(q.x,q.y)];const P=[[q.x,q.y],...sal[1],...PASILLO[sal[0]],...sitio.p];
+  const a=along(P,0);TRIPS[id]={P,L:plen(P),t0:t,d:0,off:0,last:t,fase:'ida',sitio,v:VEL,pos:andando(a.x,a.y,a.ang)};}
+function volver(id,t,prisa){const tr=TRIPS[id];const a=along(tr.P,tr.fase==='ida'?tr.d:tr.L);
+  tr.P=[[a.x,a.y],...tr.P.slice(0,a.i).reverse()];tr.L=plen(tr.P);tr.d=0;tr.t0=Math.min(tr.t0,t);tr.fase='vuelta';tr.v=prisa?VEL*1.8:VEL;}
+function vidaPose(id){   // gesto en la mesa de quien no tiene tarea: teclea a ratos, se estira
+  const st=state[id];if(TRIPS[id])return 'idle';if(reduce||(st!=='idle'&&st!=='done'))return st;
+  const ph=((frame+ids.indexOf(id)*61)%96+96)%96;return ph<46?'working':(ph>=70&&ph<78&&st==='done')?'done':'idle';}
+function tickTrips(){
+  const t=performance.now();
+  const visibles=Object.entries(TRIPS).filter(([,o])=>t>=o.t0&&!o.pos.hide).map(([k,o])=>[k,o.pos]);
+  for(const id of Object.keys(TRIPS)){const tr=TRIPS[id];const dt=Math.min(.1,Math.max(0,(t-tr.last)/1000));tr.last=t;
+    if(!libre(id)&&tr.fase!=='vuelta')volver(id,t,true);   // el job le necesita
+    if(tr.fase==='pausa'){if(t>=tr.hasta)volver(id,t,false);else continue;}
+    if(t<tr.t0)continue;                                     // aún no se ha levantado
+    const a=along(tr.P,tr.d), ux=Math.sin(a.ang), uy=-Math.cos(a.ang);
+    let cerca=false, cede=false;
+    for(const [ob,q] of visibles){if(ob===id)continue;const dx=q.x-tr.pos.x, dy=q.y-tr.pos.y, dist=Math.hypot(dx,dy), delante=dx*ux+dy*uy>0;
+      if(dist<16||(delante&&dist<26))cerca=true;
+      if(delante&&dist<13&&q.walk&&(Math.cos(q.ang-a.ang)>.3||id>ob))cede=true;}   // detrás de alguien: espera
+    tr.off+=((cerca?7.5:0)-tr.off)*Math.min(1,dt*8);                               // se aparta a su derecha
+    if(!cede)tr.d+=tr.v*dt;
+    if(tr.d>=tr.L){
+      if(tr.fase==='vuelta'){delete TRIPS[id];vidaPin(id);continue;}
+      const e=tr.P[tr.P.length-1];tr.fase='pausa';tr.off=0;tr.hasta=t+(tr.sitio.s[0]+Math.random()*(tr.sitio.s[1]-tr.sitio.s[0]))*1000;
+      tr.pos={x:e[0],y:e[1],ang:tr.sitio.ang,dir:DIR4(tr.sitio.ang),standing:true,act:tr.sitio.act,hide:!!tr.sitio.hide};
+    } else {const b=along(tr.P,tr.d);tr.pos=andando(b.x+Math.cos(b.ang)*tr.off,b.y+Math.sin(b.ang)*tr.off,b.ang);}
+    vidaPin(id);
+  }
+  if(t<nextTrip)return;
+  nextTrip=t+12000+Math.random()*14000;                      // una pausa nueva cada 12–26 s como mucho
+  const fuera=Object.keys(TRIPS).length;if(fuera>=2||Math.random()<.4)return;
+  const cand=ids.filter(id=>libre(id)&&!TRIPS[id]&&SALIDA[ESC(SEAT[id].x,SEAT[id].y)]&&id!==popId);if(!cand.length)return;
+  const ocup=new Set(Object.values(TRIPS).map(tr=>tr.sitio.k)), libres=SITIOS.filter(x=>!ocup.has(x.k));if(!libres.length)return;
+  const id=cand[Math.floor(Math.random()*cand.length)], sitio=libres[Math.floor(Math.random()*libres.length)];
+  salir(id,sitio,t);
+  const k2=PAREJA[sitio.k], otros=cand.filter(x=>x!==id);   // a veces se apunta un compañero y charlan
+  if(k2&&fuera===0&&otros.length&&!ocup.has(k2)&&Math.random()<.35)salir(otros[Math.floor(Math.random()*otros.length)],SITIOS.find(x=>x.k===k2),t+1500);
+}
+// charlas: bocadillo con puntos sobre la etiqueta, por turnos
+for(const id of ids){const c=document.createElement('span');c.className='charla';c.setAttribute('aria-hidden','true');c.innerHTML='<i></i><i></i><i></i>';pins[id].appendChild(c);}
+function charlas(){
+  const quietos=Object.entries(TRIPS).filter(([,tr])=>tr.fase==='pausa'&&!tr.pos.hide).map(([id,tr])=>[id,tr.pos]);
+  const sentados=ids.filter(id=>!TRIPS[id]&&libre(id)).map(id=>[id,SEAT[id]]);
+  const hablan=new Set();
+  for(const [a,pa] of quietos)for(const [b,pb] of [...quietos,...sentados])if(a!==b&&Math.hypot(pa.x-pb.x,pa.y-pb.y)<30){hablan.add(a);hablan.add(b);}
+  const turno=Math.floor(performance.now()/2200), orden=[...hablan].sort();
+  for(const id of ids){const i=orden.indexOf(id);pins[id].classList.toggle('habla',i>=0&&(turno+i)%2===0);}
+}
+let vidaMov=false;
+(function vidaLoop(){
+  if(VIDA){const n0=Object.keys(TRIPS).length;tickTrips();
+    const mov=Object.values(TRIPS).some(tr=>tr.fase!=='pausa');
+    if(mov||vidaMov||Object.keys(TRIPS).length!==n0)vidaRedraw();
+    vidaMov=mov;charlas();}
+  requestAnimationFrame(vidaLoop);})();
+function vidaPin(id){const p=where(id),b=pins[id];b.style.left=pct(p.x+OX,W);b.style.top=pct(p.y+OY,H);b.style.visibility=p.hide?'hidden':'';}
+function vidaRedraw(){if(!animOn)render();}
+
+/* Tarjeta emergente sobre el plano: labor actual + registro del Job */
+const LOG=Object.fromEntries(ids.map(id=>[id,[]]));
+let clock=0, popId=null;
+const pop=document.createElement('div');pop.className='pop';pop.hidden=true;pop.setAttribute('role','dialog');overlay.appendChild(pop);
+pop.addEventListener('click',e=>e.stopPropagation());
+const LBL={idle:'Disponible',waiting:'Esperando turno',working:'Trabajando',blocked:'Bloqueado',done:'Hecho'};
+function hora(ms){const s=Math.round(ms/1000*8);const d=new Date(Date.UTC(2026,0,1,10,0,s));return d.toISOString().slice(11,19);}
+function ahora(id){const st=state[id], last=LOG[id][LOG[id].length-1];
+  if((st==='working'||st==='blocked')&&last)return last.msg;
+  if(st==='waiting')return 'Esperando su turno para escribir: la pluma la tiene otro.';
+  if(st==='done')return 'Ya ha terminado su parte de este Job.';
+  return timer?'No interviene en este paso del Job.':'Sin Job en marcha ahora mismo.';}
+function logHTML(id){const L=LOG[id];
+  if(!L.length)return `<ul class="lg"><li><span class="empty">Sin actividad registrada todavía. Pulsa «Simular un Job» para generar el registro.</span></li></ul>`;
+  return `<ul class="lg">${[...L].reverse().map(e=>`<li data-s="${e.st}"><span class="t">${e.t}</span><span>${esc(e.msg)}</span></li>`).join('')}</ul>`;}
+function popHTML(id){const t=T[id];return `
+  <div class="pop-head"><h3>${esc(t.name)}<span class="role">${esc(t.role)}</span></h3><button type="button" class="pop-close" aria-label="Cerrar">×</button></div>
+  <span class="chipst" data-s="${state[id]}">${LBL[state[id]]}</span>
+  <div class="lbl">Ahora</div><div class="now">${esc(ahora(id))}</div>
+  <div class="lbl">Su labor</div><div>${esc(t.gesto)}</div><div class="mod">${esc(t.mod)}</div>
+  <div class="lbl">Registro del Job</div>${logHTML(id)}`;}
+function placePop(id){const p=where(id);const sx=p.x+OX, sy=p.y+OY;
+  pop.style.left=pct(sx,W);pop.style.top=pct(sy,H);
+  const tx=sx<110?'-10%':sx>W-110?'-90%':'-50%';
+  const ty=sy<H*0.5?'calc(8px * var(--s))':'calc(-100% - 8px * var(--s))';
+  pop.style.transform=`translate(${tx}, ${ty})`;}
+function openPop(id){popId=id;pop.innerHTML=popHTML(id);placePop(id);pop.hidden=false;
+  pop.querySelector('.pop-close').addEventListener('click',closePop);}
+function closePop(){popId=null;pop.hidden=true;}
+function refreshPop(){if(popId){const sc=pop.querySelector('.lg')?.scrollTop||0;openPop(popId);const lg=pop.querySelector('.lg');if(lg)lg.scrollTop=sc;}}
+document.addEventListener('click',e=>{if(popId&&!pop.contains(e.target))closePop();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popId)closePop();});
+
+const zoneList=document.getElementById('zoneList');
+for(const z of ZONES){const li=document.createElement('li');
+  li.innerHTML=`<div class="zname">${esc(z.name)}</div>`+(z.ids.length?'<div class="chips"></div>':`<div class="empty">${esc(z.empty)}</div>`);
+  const box=li.querySelector('.chips');
+  for(const id of z.ids){const c=document.createElement('button');c.type='button';c.className='chip';c.style.setProperty('--sw',T[id].color);c.setAttribute('aria-pressed','false');
+    c.innerHTML=`<i></i>${esc(T[id].name)}`;c.addEventListener('click',e=>{e.stopPropagation();select(id);openPop(id);});box.appendChild(c);chips[id]=c;}
+  zoneList.appendChild(li);}
+
+const ficha=document.getElementById('ficha');
+const zoneOf=id=>ZONES.find(z=>z.ids.includes(id)).name;
+function select(id){
+  selected=id;const t=T[id];
+  for(const k of ids){pins[k].setAttribute('aria-pressed',String(k===id));chips[k].setAttribute('aria-pressed',String(k===id));}
+  ficha.innerHTML=`
+    <div class="kicker">${esc(zoneOf(id))}</div>
+    <h2>${esc(t.name)}</h2>
+    <div class="meta">${t.age} años · ${esc(t.from)} · <span class="swatch" style="--sw:${t.color}"><i></i>${esc(t.colorName)}</span></div>
+    <div class="role">${esc(t.role)}</div>
+    <div class="mod">${esc(t.mod)}</div>
+    <div class="seat">${esc(SEAT[id].seat)}</div>
+    <dl><dt>Perfil</dt><dd>${esc(t.perfil)}</dd><dt>Gesto</dt><dd>${esc(t.gesto)}</dd></dl>
+    <div class="lbl">Registro del Job</div>${logHTML(id)}
+    <blockquote>${esc(t.frase)}</blockquote>`;
+  render();
+}
+select(PRIMERA);
+
+function fit(){
+  const aw=wrapEl.clientWidth-24, ah=wrapEl.clientHeight-24;
+  const cssW=Math.max(200,Math.min(aw,ah*W/H)), cssH=cssW*H/W;
+  plan.style.width=cssW+'px';plan.style.height=cssH+'px';plan.style.setProperty('--s',cssW/384);
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);S=cv.width/W;
+  buildBg();render();
+}
+fit();addEventListener('resize',fit);
+/* Botón de pantalla completa del navegador (la página ya ocupa toda la ventana) */
+const fsBtn=document.getElementById('fsBtn');
+function syncFs(){const on=!!document.fullscreenElement;fsBtn.setAttribute('aria-pressed',String(on));fsBtn.textContent=on?'✕ Salir de pantalla completa':'⛶ Pantalla completa';}
+if(!document.documentElement.requestFullscreen)fsBtn.hidden=true;
+fsBtn.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){/* el navegador no lo permite: la página sigue ocupando la ventana */}});
+document.addEventListener('fullscreenchange',()=>{syncFs();requestAnimationFrame(fit);});
+/* Foco en quien trabaja: oscurece el resto de la oficina e ilumina a cada persona trabajando */
+const SVGNS='http://www.w3.org/2000/svg';
+const spot=document.createElementNS(SVGNS,'svg');spot.setAttribute('class','spot');spot.setAttribute('aria-hidden','true');
+spot.innerHTML='<defs><radialGradient id="spotHole"><stop offset="50%" stop-color="#000"/><stop offset="100%" stop-color="#fff"/></radialGradient><mask id="spotMask" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="#fff"/><g class="holes"></g></mask></defs><rect width="100%" height="100%" fill="rgba(6,10,20,.3)" mask="url(#spotMask)"/><g class="rings"></g>';
+overlay.insertBefore(spot,overlay.firstChild);
+const holesG=spot.querySelector('.holes'), ringsG=spot.querySelector('.rings');
+let spotKey=null;
+function spotLoop(){
+  const ids=Object.keys(pins).filter(id=>pins[id].dataset.state==='working'&&pins[id].style.visibility!=='hidden');
+  spot.classList.toggle('on',ids.length>0);
+  if(ids.length){
+    const pr=plan.getBoundingClientRect(), r=Math.max(34,pr.width*.045);
+    if(spotKey!==ids.join()){spotKey=ids.join();
+      holesG.innerHTML=ids.map(()=>'<circle fill="url(#spotHole)"/>').join('');
+      ringsG.innerHTML=ids.map(()=>'<circle class="ring2"/><circle class="ring"/>').join('');}
+    ids.forEach((id,i)=>{const b=pins[id].getBoundingClientRect(), x=b.left+b.width/2-pr.left, y=b.top+b.height/2-pr.top+r*.2;
+      const h=holesG.children[i];h.setAttribute('cx',x);h.setAttribute('cy',y);h.setAttribute('r',r*1.7);
+      for(const c of [ringsG.children[2*i],ringsG.children[2*i+1]]){c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',r);}});
+  }
+  requestAnimationFrame(spotLoop);
+}
+requestAnimationFrame(spotLoop);
+const namesBtn=document.getElementById('names');
+if(wrapEl.clientWidth<700){plan.classList.remove('names');namesBtn.setAttribute('aria-pressed','false');}
+namesBtn.addEventListener('click',()=>{const on=plan.classList.toggle('names');namesBtn.setAttribute('aria-pressed',String(on));});
+
+/* ---------- Simulación de un Job (la misma del reparto) ---------- */
+const ST_TXT={working:'trabajando',blocked:'bloqueado'};
+function setState(id,s){state[id]=s;pins[id].dataset.state=s;pins[id].querySelector('.st').textContent=ST_TXT[s]||'';}
+const STEPS = OFICINA.STEPS;
+/* Lo que hace cada persona en cada paso (índice del paso → persona → tarea) */
+const ACT = OFICINA.ACT;
+/* Entregas de cada paso: [quién envía, quién recibe, objeto, qué es] */
+const HAND = OFICINA.HAND;
+const playBtn=document.getElementById('play'), logEl=document.getElementById('log');
+document.getElementById('estilo').addEventListener('change',e=>{location.href=e.target.value+location.search;});
+/* Fin del Job: lo anuncia el jefe (quien está en el despacho de dirección, o «jefe» en datos.js) con el informe final */
+const JEFE=(()=>{const j=OFICINA.jefe;if(j&&T[j])return j;const z=(OFICINA.ZONES||[]).find(z=>z.sala==='despacho'&&z.ids&&z.ids.length&&T[z.ids[0]]);if(z)return z.ids[0];
+  return Object.keys(SEAT).find(k=>SEAT[k].x===52&&SEAT[k].y===22)||PRIMERA;})();
+const fin=document.createElement('div');fin.className='fin';fin.hidden=true;fin.setAttribute('role','dialog');fin.setAttribute('aria-modal','false');fin.setAttribute('aria-labelledby','finTit');
+fin.innerHTML='<div class="fin-card"><div class="fin-jefe"><span class="fin-av" aria-hidden="true"></span><div><div class="fin-quien"></div><div class="fin-dice"></div></div></div><h2 id="finTit">Job completado</h2><p class="fin-job"></p><table class="fin-tabla"></table><p class="fin-nota"></p><div class="fin-btns"><button type="button" class="fin-again">↻ Repetir</button><button type="button" class="fin-close">Cerrar</button></div></div>';
+plan.appendChild(fin);
+for(const ev of ['click','pointerdown','mousedown','touchstart','wheel'])fin.addEventListener(ev,e=>e.stopPropagation());
+let jobT0=0;
+function chime(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const ac=new A(),t=ac.currentTime;
+  [[523.25,0],[659.25,.12],[783.99,.24],[1046.5,.38]].forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.18,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.6);o.connect(g).connect(ac.destination);o.start(t+d);o.stop(t+d+.65);});
+  setTimeout(()=>ac.close(),1500);}catch(e){}}
+// info (opcional, p. ej. desde datos en directo): {ok, titulo, dice, sub, filas:[[etiqueta, valor, 'ok'|'mal'], …], nota}
+function showDone(info){
+  info=info||{};const ok=info.ok!==false;
+  const secs=Math.max(1,Math.round((performance.now()-jobT0)/1000));
+  const t=T[JEFE]||{name:'',role:'',short:'',color:'#1FA97E'};
+  const av=fin.querySelector('.fin-av');av.textContent=String(t.short||t.name).split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();av.style.background=t.color;
+  fin.querySelector('.fin-quien').textContent=t.name+(t.role?' · '+t.role:'');
+  fin.querySelector('.fin-dice').textContent='«'+(info.dice||(ok?'¡Equipo, job completado! Aquí tenéis el informe.':'El job se ha detenido. Esto es lo que ha quedado hecho.'))+'»';
+  fin.querySelector('#finTit').textContent=info.titulo||(ok?'Job completado':'Job detenido');
+  const tmp=document.createElement('div');tmp.innerHTML=INTRO;tmp.querySelector('.step')?.remove();
+  fin.querySelector('.fin-job').textContent=info.sub!==undefined?info.sub:tmp.textContent.trim();
+  const filas=info.filas||[...(OFICINA.informe||[['Pasos',STEPS.length],['Personas',ids.length]]),['Duración de la simulación',secs+' s']];
+  fin.querySelector('.fin-tabla').innerHTML=filas.map(([k,v,tono])=>`<tr${tono?` data-t="${esc(tono)}"`:''}><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
+  fin.querySelector('.fin-nota').textContent=info.nota||'';
+  fin.classList.toggle('fin-mal',!ok);
+  fin.querySelectorAll('i').forEach(e=>e.remove());
+  if(ok){const cols=ids.map(id=>T[id].color);
+    for(let k=0;k<70;k++){const c=document.createElement('i');c.style.left=(Math.random()*100)+'%';c.style.background=cols[k%cols.length];
+      c.style.setProperty('--dx',(Math.random()*160-80)+'px');c.style.setProperty('--rot',(Math.random()*900-450)+'deg');
+      c.style.animationDuration=(1.8+Math.random()*1.8)+'s';c.style.animationDelay=(Math.random()*.6)+'s';fin.appendChild(c);}}
+  // foco sobre el jefe, que anuncia el final
+  const pj=pins[JEFE];fin.classList.remove('con-jefe');
+  if(pj){pj.classList.add('anuncia');pj.classList.toggle('mal',!ok);const b=pj.getBoundingClientRect(),r=plan.getBoundingClientRect();
+    if(b.width&&pj.style.visibility!=='hidden'){fin.style.setProperty('--jx',(b.left+b.width/2-r.left)+'px');fin.style.setProperty('--jy',(b.top+b.height/2-r.top)+'px');fin.classList.add('con-jefe');}}
+  fin.hidden=false;document.querySelector('.simbar').classList.add('fin-on');
+  logEl.classList.add('fin-log');if(ok)chime();fin.querySelector('.fin-close').focus({preventScroll:true});
+}
+function hideDone(){fin.hidden=true;document.querySelector('.simbar').classList.remove('fin-on');logEl.classList.remove('fin-log');pins[JEFE]?.classList.remove('anuncia','mal');}
+fin.querySelector('.fin-close').addEventListener('click',e=>{e.stopPropagation();hideDone();});
+fin.querySelector('.fin-again').addEventListener('click',e=>{e.stopPropagation();hideDone();if(timer){stop();resetAll();}playBtn.click();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fin.hidden)hideDone();});
+const INTRO='<span class="step">Job</span>'+esc([JOB.nombre,JOB.resumen].filter(Boolean).join(' · '));
+document.getElementById('log').innerHTML=INTRO;
+const progEl=document.getElementById('prog');
+function resetAll(){ids.forEach(id=>setState(id,'idle'));}
+function stop(){clearTimeout(timer);timer=null;clearFlights();playBtn.textContent='▶ Simular un Job';plan.classList.remove('running');logEl.classList.remove('live');progEl.style.width='0';render();}
+function run(i){
+  if(i>=STEPS.length){progEl.style.width='100%';showDone();timer=setTimeout(()=>{stop();resetAll();logEl.innerHTML='<span class="step">Fin</span>✓ Job completado. Pulsa «Simular un Job» para repetirlo.';},2500);return;}
+  const [changes,msg,ms]=STEPS[i];
+  const t=hora(clock);
+  for(const [id,s] of Object.entries(changes)){
+    setState(id,s);
+    const own=ACT[i]&&ACT[i][id];
+    const txt=s==='done'?(own||'Termina su parte y pasa el testigo.'):s==='waiting'?'Queda a la espera de la pluma para escribir.':s==='idle'?null:(own||msg);
+    if(txt)LOG[id].push({t,st:s,msg:txt});
+  }
+  for(const [from,to,item,label] of (HAND[i]||[])){
+    if(from!=='door')LOG[from].push({t,st:'done',msg:`Envía «${label}» a ${T[to].short}.`});
+    LOG[to].push({t,st:'working',msg:from==='door'?`Recibe «${label}» por la puerta.`:`Recibe «${label}» de ${T[from].short}.`});
+  }
+  if(HAND[i])launch(HAND[i],ms);
+  clock+=ms;
+  refreshPop();if(selected)select(selected);
+  logEl.innerHTML=`<span class="step">Paso ${i+1} de ${STEPS.length}</span>${esc(msg)}`;
+  progEl.style.width=((i+1)/STEPS.length*100)+'%';
+  timer=setTimeout(()=>run(i+1),ms);
+  render();
+}
+playBtn.addEventListener('click',()=>{
+  hideDone();if(timer){stop();resetAll();logEl.innerHTML=INTRO;return;}
+  resetAll();ids.forEach(id=>LOG[id].length=0);clock=0;
+  playBtn.textContent='■ Detener';plan.classList.add('running');logEl.classList.add('live');
+  timer=-1;jobT0=performance.now();run(0);
+});
+
+/* ---------- Conexión en directo con la aplicación (opcional) ----------
+   Si datos.js trae  directo: { url: 'eventos' }, la oficina escucha esos eventos (Server-Sent Events)
+   y el equipo se mueve con el trabajo real. Los manda la librería oficina-eventos.js desde la aplicación.
+   Mientras no llegue ningún trabajo, la oficina sigue con la simulación de ejemplo. */
+const DIRECTO={activo:false,fin:false};
+if(OFICINA.directo&&OFICINA.directo.url&&window.EventSource){
+  const hhmm=()=>new Date().toLocaleTimeString('es-ES',{hour12:false});
+  const barra=(a,b)=>{logEl.innerHTML=`<span class="step">${esc(a||'')}</span>${esc(b||'')}`;};
+  let cola=false;
+  const refrescar=()=>{if(cola)return;cola=true;requestAnimationFrame(()=>{cola=false;refreshPop();if(selected)select(selected);if(typeof render==='function')render();});};
+  const anota=(id,st,msg)=>{if(!msg||!LOG[id])return;const L=LOG[id],l=L[L.length-1];if(!l||l.msg!==msg||l.st!==st)L.push({t:hhmm(),st,msg});if(L.length>300)L.splice(0,L.length-300);};
+  function limpiar(){if(timer)stop();hideDone();resetAll();ids.forEach(id=>LOG[id].length=0);}
+  function enDirecto(){
+    if(DIRECTO.activo)return;DIRECTO.activo=true;limpiar();
+    playBtn.hidden=true;fin.querySelector('.fin-again').hidden=true;   // en directo no hay «Repetir»: el trabajo es real
+    ahora=function(id){const st=state[id],L=LOG[id],l=L[L.length-1];
+      if(st!=='idle'&&l)return l.msg;if(st==='waiting')return 'Esperando su turno.';if(st==='done')return 'Ya ha terminado su parte.';
+      return DIRECTO.fin?'Sin trabajo en marcha ahora mismo.':'No interviene en este momento del trabajo.';};}
+  function aplicar(e){
+    switch(e.t){
+      case 'inicio':
+        if(DIRECTO.activo)limpiar();enDirecto();DIRECTO.fin=false;jobT0=performance.now();
+        plan.classList.add('running');logEl.classList.add('live');progEl.style.width='0';
+        barra('En marcha',[e.titulo,e.resumen].filter(Boolean).join(' · '));break;
+      case 'estado':
+        if(!T[e.id])return;enDirecto();if(state[e.id]!==e.estado)setState(e.id,e.estado);anota(e.id,e.estado,e.texto);break;
+      case 'entrega':
+        if(!T[e.a]||(e.de!=='door'&&!T[e.de]))return;enDirecto();
+        if(e.de!=='door')anota(e.de,'done',`Envía «${e.etiqueta}» a ${T[e.a].short}.`);
+        anota(e.a,'working',e.de==='door'?`Recibe «${e.etiqueta}» por la puerta.`:`Recibe «${e.etiqueta}» de ${T[e.de].short}.`);
+        launch([[e.de,e.a,e.objeto||'box',e.etiqueta||'']],2000);break;
+      case 'paso':enDirecto();barra(e.titulo,e.texto);break;
+      case 'progreso':enDirecto();progEl.style.width=(Math.max(0,Math.min(1,+e.valor||0))*100)+'%';break;
+      case 'fin':
+        enDirecto();DIRECTO.fin=true;
+        for(const id of ids){if(state[id]==='working'||state[id]==='blocked')setState(id,'done');else if(state[id]==='waiting')setState(id,'idle');}
+        plan.classList.remove('running');logEl.classList.remove('live');progEl.style.width='100%';
+        barra(e.ok===false?'Detenido':'Fin',(e.ok===false?'':'✓ ')+(e.titulo||(e.ok===false?'El trabajo se ha detenido':'Trabajo completado')));
+        setTimeout(()=>showDone(e),e.repeticion?0:1200);   // tras las últimas entregas
+        break;
+      default:return;
+    }
+    refrescar();
+  }
+  const fuente=new EventSource(OFICINA.directo.url+(location.search||''));
+  fuente.onmessage=m=>{try{aplicar(JSON.parse(m.data));}catch(err){console.warn('Evento de la oficina no válido',err);}};
+  fuente.onerror=()=>{if(DIRECTO.activo&&!DIRECTO.fin)barra('Reconectando','Se ha perdido la conexión con la aplicación…');};
+}
+
+/* Puente para scripts externos (p. ej. los datos en directo de una aplicación): window.OF.
+   Se avisa con el evento «oficina:lista» cuando ya está todo definido. */
+window.OF={get state(){return state},setState,get LOG(){return LOG},launch,get T(){return T},get NATIVOS(){return NATIVOS},refreshPop,select,
+  get selected(){return selected},render:typeof render==='function'?render:()=>{},logEl,progEl:document.getElementById('prog'),fin,showDone,hideDone,playBtn,resetAll,esc,ids,plan,reduce,
+  get ahora(){return ahora},set ahora(f){ahora=f},get logHTML(){return logHTML},set logHTML(f){logHTML=f}};
+window.OF_LISTA=true;window.dispatchEvent(new Event('oficina:lista'));
+// Demo: con ?demo en la dirección, la simulación arranca sola (y se repite tras el informe final)
+if(new URLSearchParams(location.search).has('demo')&&!(OFICINA.directo&&OFICINA.directo.url)){
+  setTimeout(()=>{if(!timer)playBtn.click();},1500);
+  new MutationObserver(()=>{if(!fin.hidden){clearTimeout(window.__demoRep);window.__demoRep=setTimeout(()=>{if(!fin.hidden&&!timer){hideDone();playBtn.click();}},15000);}}).observe(fin,{attributes:true,attributeFilter:['hidden']});
+}
+/* Integración con una aplicación (opcional, desde datos.js):
+   volver: {texto, url} → botón para volver a la aplicación
+   extras: ['ruta.js', …] → scripts propios que se cargan en orden al final (p. ej. datos en directo) */
+if(OFICINA.volver){const a=document.createElement('a');a.className='toggle';a.id='backLink';a.href=OFICINA.volver.url||'../';a.textContent=OFICINA.volver.texto||'← Volver';
+  a.style.cssText='text-decoration:none;display:inline-flex;align-items:center';document.getElementById('fsBtn').after(a);}
+(function cargar(L){const u=L.shift();if(!u)return;const s=document.createElement('script');s.src=u;s.onload=s.onerror=()=>cargar(L);document.head.appendChild(s);})((OFICINA.extras||[]).slice());
+</script>

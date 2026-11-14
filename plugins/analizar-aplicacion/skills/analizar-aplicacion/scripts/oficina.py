@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""Instala, migra y revisa la oficina virtual de un proyecto.
+
+La oficina de un proyecto vive en una carpeta (por defecto docs/oficina-virtual/)
+con los 8 estilos y un único archivo de datos, datos.js, que leen todos.
+
+Uso:
+  python3 oficina.py buscar PROYECTO
+      Busca oficinas ya montadas en el proyecto y dice de qué tipo es cada una:
+        datos      carpeta con datos.js y los 8 estilos (formato actual)
+        integrada  un HTML dentro de la aplicación que lee datos reales
+                   (fetch, /api/…): se cambia en su sitio, nunca se migra
+        antigua    un HTML suelto con los datos dentro: se puede migrar
+      Sale con código 1 si no hay ninguna.
+
+  python3 oficina.py libreria CARPETA
+      Copia oficina-eventos.js (la librería que conecta la aplicación con la
+      oficina en directo) a CARPETA de la aplicación, p. ej. su lib/.
+
+  python3 oficina.py instalar DESTINO
+      Copia (o actualiza) los 8 estilos en DESTINO. Si DESTINO ya tiene
+      datos.js, NO lo toca: así se actualiza el diseño sin perder los datos.
+      Si no lo tiene, copia el de ejemplo para rellenarlo después.
+
+  python3 oficina.py migrar HTML_ANTIGUO DESTINO
+      Saca los datos de una oficina antigua (un único HTML con los datos
+      dentro) a DESTINO/datos.js e instala los 8 estilos al lado.
+
+  python3 oficina.py comprobar DESTINO|HTML
+      Revisa que los datos sean coherentes: personas, puestos, áreas, pasos,
+      tareas y entregas. Acepta la carpeta con datos.js o el HTML de una
+      oficina integrada o antigua. Necesita node.
+"""
+import os, re, shutil, subprocess, sys
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+PLANTILLAS = os.path.normpath(os.path.join(AQUI, '..', 'assets', 'oficinas'))
+ESTILOS = ['1-pixel.html', '2-isometrica.html', '3-plano-arquitecto.html', '4-ilustracion-plana.html',
+           '5-maqueta-papel.html', '6-pizarra.html', '7-holografico.html', '8-realista-3d.html']
+# Posición de la etiqueta de cada área en el dibujo -> sala física
+SALAS = {(15, 6): 'despacho', (7, 178): 'recepcion', (17, 84): 'izquierda', (127, 6): 'isla',
+         (127, 99): 'mesa-larga', (276, 6): 'arriba-derecha', (276, 86): 'derecha',
+         (276, 180): 'abajo-derecha', (138, 180): 'office'}
+BLOQUES = ['T', 'SEAT', 'ZONES', 'STEPS', 'ACT', 'HAND']
+SALTAR = {'node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'vendor', '.venv', 'venv', '__pycache__', 'coverage', '.cache'}
+VIVO = re.compile(r'fetch\(|EventSource|WebSocket|/api/|XMLHttpRequest|socket\.io')
+
+
+def buscar(proyecto):
+    halladas = []
+    for raiz, dirs, archivos in os.walk(proyecto):
+        dirs[:] = [d for d in dirs if d not in SALTAR]
+        for a in archivos:
+            if not a.endswith(('.html', '.js')):
+                continue
+            ruta = os.path.join(raiz, a)
+            try:
+                if os.path.getsize(ruta) > 3_000_000:
+                    continue
+                s = open(ruta, encoding='utf-8', errors='ignore').read()
+            except OSError:
+                continue
+            if a == 'datos.js' and 'window.OFICINA' in s:
+                halladas.append(('datos', raiz))
+            elif a.endswith('.html') and 'const ZONES' in s and 'const STEPS' in s and 'id="plano"' in s \
+                    and 'src="datos.js"' not in s:
+                halladas.append(('integrada' if VIVO.search(s) else 'antigua', ruta))
+    for tipo, ruta in halladas:
+        print('%s\t%s' % (tipo, os.path.relpath(ruta, proyecto)))
+    if not halladas:
+        print('ninguna')
+        sys.exit(1)
+
+
+def instalar(destino):
+    os.makedirs(destino, exist_ok=True)
+    for f in ESTILOS:
+        shutil.copyfile(os.path.join(PLANTILLAS, f), os.path.join(destino, f))
+    datos = os.path.join(destino, 'datos.js')
+    if os.path.exists(datos):
+        print('Estilos actualizados. datos.js se ha dejado como estaba.')
+    else:
+        shutil.copyfile(os.path.join(PLANTILLAS, 'datos.js'), datos)
+        print('Estilos instalados con datos.js de ejemplo: hay que rellenarlo.')
+    print(os.path.abspath(destino))
+
+
+def _bloque(s, nombre):
+    m = re.search(r'^const ' + nombre + r'\s*=\s*', s, re.M)
+    if not m:
+        raise SystemExit('No encuentro el bloque %s en la oficina antigua.' % nombre)
+    i = m.end(); ab = s[i]; ci = {'{': '}', '[': ']'}[ab]; d = 0; j = i; cad = None
+    while True:
+        c = s[j]
+        if cad:
+            if c == '\\':
+                j += 2; continue
+            if c == cad:
+                cad = None
+        elif c in '\'"`':
+            cad = c
+        elif c == ab:
+            d += 1
+        elif c == ci:
+            d -= 1
+            if d == 0:
+                return s[i:j + 1]
+        j += 1
+
+
+def _js(texto):
+    return "'" + texto.replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+
+def migrar(antiguo, destino):
+    s = open(antiguo, encoding='utf-8').read()
+    if 'window.OFICINA' in s:
+        raise SystemExit('Esta oficina ya usa datos.js: no hace falta migrarla.')
+    b = {n: _bloque(s, n) for n in BLOQUES}
+
+    def con_sala(m):
+        clave = SALAS.get((int(m.group(2)), int(m.group(3))))
+        return m.group(0) if not clave else "{sala:'%s', name:%s, x:%s, y:%s" % (clave, m.group(1), m.group(2), m.group(3))
+    b['ZONES'] = re.sub(r"\{name:\s*('(?:[^'\\]|\\.)*'),\s*x:\s*(\d+),\s*y:\s*(\d+)", con_sala, b['ZONES'])
+
+    intro = re.search(r"const INTRO='<span class=\"step\">[^<]*</span>([^']*)'", s)
+    partes = (intro.group(1) if intro else '').split(' · ', 1)
+    titulo = re.search(r'<title>([^<]*)</title>', s)
+    empresa = ''
+    if titulo:
+        m = re.search(r'\bde (?:la oficina )?([^<]+)$', titulo.group(1)) or re.search(r'oficina ([^<]+)$', titulo.group(1))
+        empresa = m.group(1).strip() if m else ''
+    primera = re.search(r"select\('([a-z0-9_]+)'\)", s)
+
+    ejemplo = open(os.path.join(PLANTILLAS, 'datos.js'), encoding='utf-8').read()
+    cabecera = ejemplo[:ejemplo.index('window.OFICINA')]
+    datos = cabecera + 'window.OFICINA = {\n\n'
+    datos += 'empresa: %s,\n' % _js(empresa)
+    datos += 'job: { nombre: %s, resumen: %s },\n' % (_js(partes[0]), _js(partes[1] if len(partes) > 1 else ''))
+    nombre = os.path.basename(antiguo)
+    estilo = nombre if nombre in ESTILOS else next((e for e in ESTILOS if e.split('-', 1)[1].split('.')[0] in nombre), '4-ilustracion-plana.html')
+    datos += 'primera: %s,   // persona cuya ficha se abre al empezar\n' % _js(primera.group(1) if primera else '')
+    datos += 'estilo: %s,   // el estilo que se abre primero (se cambia con el selector)\n\n' % _js(estilo)
+    datos += ',\n\n'.join('%s: %s' % (n, b[n]) for n in BLOQUES) + '\n\n};\n'
+
+    os.makedirs(destino, exist_ok=True)
+    ruta = os.path.join(destino, 'datos.js')
+    if os.path.exists(ruta):
+        raise SystemExit('Ya existe %s: no lo sobrescribo.' % ruta)
+    open(ruta, 'w', encoding='utf-8').write(datos)
+    sin_sala = len(re.findall(r'\{name:', b['ZONES']))
+    print('Datos migrados a %s (empresa: %r).' % (ruta, empresa))
+    if sin_sala:
+        print('AVISO: %d área(s) sin sala reconocida; revisar ZONES a mano.' % sin_sala)
+    instalar(destino)
+
+
+COMPROBAR_JS = r'''
+global.window = {};
+try { require(process.argv[1]); } catch (e) { console.log('ERROR de sintaxis en datos.js: ' + e.message); process.exit(1); }
+const O = window.OFICINA, P = [];
+if (!O) { console.log('ERROR: datos.js no define window.OFICINA'); process.exit(1); }
+const ids = Object.keys(O.T || {});
+const PUESTOS = ['52,22','46,200','34,113','78,113','77,134','176,24','212,24','176,58','212,58','166,118','200,118','234,118','183,146','217,146','320,36','326,48','318,122','352,152','326,224'];
+const SALAS = ['despacho','recepcion','izquierda','isla','mesa-larga','arriba-derecha','derecha','abajo-derecha','office'];
+const EST = ['working','waiting','blocked','done','idle'], OBJ = ['ticket','box','photos','folder','postit','pen','sign','zip'];
+if (!ids.length) P.push('No hay personas en T.');
+if (ids.length > 17) P.push('Hay ' + ids.length + ' personas y la oficina solo tiene 17 puestos.');
+for (const id of ids) {
+  const t = O.T[id];
+  for (const k of ['name','short','role','color','s']) if (!t[k]) P.push('T.' + id + ': falta «' + k + '».');
+  const s = (O.SEAT || {})[id];
+  if (!s) P.push('SEAT: ' + id + ' no tiene puesto.');
+  else if (!PUESTOS.includes(s.x + ',' + s.y)) P.push('SEAT.' + id + ': ' + s.x + ',' + s.y + ' no es uno de los puestos del dibujo.');
+}
+const usados = {};
+for (const [id, s] of Object.entries(O.SEAT || {})) {
+  if (!O.T[id]) P.push('SEAT.' + id + ': no existe esa persona en T.');
+  const k = s.x + ',' + s.y; if (usados[k]) P.push('SEAT: ' + usados[k] + ' y ' + id + ' comparten puesto.'); usados[k] = id;
+}
+const enZona = new Set();
+for (const z of O.ZONES || []) {
+  if (z.sala !== undefined && !SALAS.includes(z.sala)) P.push('ZONES «' + z.name + '»: sala «' + z.sala + '» desconocida.');
+  if (!z.name) P.push('ZONES (' + z.sala + '): falta el nombre.');
+  for (const id of z.ids || []) { if (!O.T[id]) P.push('ZONES «' + z.name + '»: ' + id + ' no existe.'); enZona.add(id); }
+}
+for (const id of ids) if (!enZona.has(id)) P.push(id + ' no está en ningún área (ZONES).');
+const n = (O.STEPS || []).length;
+if (!n) P.push('No hay pasos en STEPS.');
+(O.STEPS || []).forEach((st, i) => {
+  if (!Array.isArray(st) || typeof st[1] !== 'string' || typeof st[2] !== 'number') { P.push('STEPS[' + i + ']: formato [ {persona:estado}, texto, milisegundos ].'); return; }
+  for (const [id, e] of Object.entries(st[0])) { if (!O.T[id]) P.push('STEPS[' + i + ']: ' + id + ' no existe.'); if (!EST.includes(e)) P.push('STEPS[' + i + ']: estado «' + e + '» no válido.'); }
+});
+for (const [k, v] of Object.entries(O.ACT || {})) {
+  if (+k >= n) P.push('ACT[' + k + ']: no existe ese paso.');
+  for (const id of Object.keys(v)) if (!O.T[id]) P.push('ACT[' + k + ']: ' + id + ' no existe.');
+}
+for (const [k, v] of Object.entries(O.HAND || {})) {
+  if (+k >= n) P.push('HAND[' + k + ']: no existe ese paso.');
+  for (const h of v) {
+    if (h[0] !== 'door' && !O.T[h[0]]) P.push('HAND[' + k + ']: ' + h[0] + ' no existe.');
+    if (!O.T[h[1]]) P.push('HAND[' + k + ']: ' + h[1] + ' no existe.');
+    if (!OBJ.includes(h[2])) P.push('HAND[' + k + ']: objeto «' + h[2] + '» no válido.');
+  }
+}
+if (O.primera && !O.T[O.primera]) P.push('primera: ' + O.primera + ' no existe.');
+console.log(P.length ? P.map(p => '- ' + p).join('\n') : 'OK: ' + ids.length + ' personas, ' + (O.ZONES || []).length + ' áreas, ' + n + ' pasos.');
+process.exit(P.length ? 1 : 0);
+'''
+
+
+def comprobar(destino):
+    if not shutil.which('node'):
+        raise SystemExit('Sin node no puedo revisar los datos: abrir la oficina en el navegador y mirar que cargue.')
+    temporal = None
+    if destino.endswith('.html'):
+        # oficina integrada o antigua: sacar sus bloques a un archivo temporal
+        import tempfile
+        s = open(destino, encoding='utf-8').read()
+        js = 'window.OFICINA = {\n' + ',\n'.join('%s: %s' % (n, _bloque(s, n)) for n in BLOQUES) + '\n};\n'
+        fd, temporal = tempfile.mkstemp(suffix='.js'); os.close(fd)
+        open(temporal, 'w', encoding='utf-8').write(js)
+        ruta = temporal
+    else:
+        ruta = os.path.abspath(os.path.join(destino, 'datos.js'))
+        if not os.path.exists(ruta):
+            raise SystemExit('No existe %s' % ruta)
+    try:
+        r = subprocess.run(['node', '-e', COMPROBAR_JS, ruta])
+    finally:
+        if temporal:
+            os.remove(temporal)
+    sys.exit(r.returncode)
+
+
+if __name__ == '__main__':
+    a = sys.argv[1:]
+    if len(a) == 2 and a[0] == 'buscar':
+        buscar(a[1])
+    elif len(a) == 2 and a[0] == 'libreria':
+        os.makedirs(a[1], exist_ok=True)
+        dst = os.path.join(a[1], 'oficina-eventos.js')
+        shutil.copyfile(os.path.join(AQUI, '..', 'assets', 'conexion', 'oficina-eventos.js'), dst)
+        print(os.path.abspath(dst))
+    elif len(a) == 2 and a[0] == 'instalar':
+        instalar(a[1])
+    elif len(a) == 3 and a[0] == 'migrar':
+        migrar(a[1], a[2])
+    elif len(a) == 2 and a[0] == 'comprobar':
+        comprobar(a[1])
+    else:
+        print(__doc__)
+        sys.exit(2)
