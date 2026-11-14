@@ -9,7 +9,7 @@
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.6.1-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.7.0-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
@@ -134,7 +134,7 @@ Lo más potente: **la oficina se puede conectar a tu aplicación** para que el e
 
 ```mermaid
 flowchart LR
-    A["🖥️ Tu aplicación<br/><sub>procesa un trabajo real</sub>"] -- "oficina.trabaja('nadia', '…')" --> B["📡 oficina-eventos.js<br/><sub>librería, 0 dependencias</sub>"]
+    A["🖥️ Tu aplicación<br/><sub>procesa un trabajo real</sub>"] -- "oficina.trabaja('nadia', '…')" --> B["📡 oficina-eventos<br/><sub>librería, 0 dependencias</sub>"]
     B -- "eventos en directo" --> C["🏢 Oficina virtual<br/><sub>cualquiera de los 8 estilos</sub>"]
     C --> D["👀 Tú y tu equipo<br/><sub>lo veis pasar</sub>"]
 ```
@@ -142,8 +142,9 @@ flowchart LR
 Conectarla son unas pocas líneas en tu código. **El plugin las escribe por ti** y te enseña los cambios antes de tocar nada:
 
 ```js
-const oficina = require('./lib/oficina-eventos');
-app.get('/oficina/eventos', oficina.sse);              // la ruta que escucha la oficina
+import oficina from './lib/oficina-eventos.mjs';        // o require('./lib/oficina-eventos.cjs')
+app.get('/oficina/eventos', proteger, oficina.sse);     // la ruta que escucha la oficina
+app.get(['/oficina', '/oficina/:archivo'], proteger, oficina.estatico('docs/oficina-virtual'));
 
 const c = oficina.canal(pedido.id);                     // un canal por trabajo
 c.inicio({ titulo: 'Pedido 123', resumen: '24 productos' });
@@ -160,6 +161,11 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 | `entrega` | Un objeto vuela de una mesa a otra |
 | `paso` · `progreso` | El texto y la barra de progreso de arriba |
 | `fin` | El jefe anuncia el final con el informe |
+
+- **Dónde se ve:** en tu propia aplicación, `http://localhost:<puerto>/oficina/`, con tu login.
+- **Funciona con** servidores Node (CommonJS o ESM) y con trabajos en otro proceso o serverless (Trigger.dev, colas, cron) por sondeo.
+- **`/oficina/prueba`** lanza un trabajo falso de unos 40 s, sin gastar nada, para verla moverse.
+- El plugin **la comprueba en un navegador** antes de entregártela.
 
 > 🔒 **Seguro por diseño:** avisar a la oficina nunca puede romper ni frenar el trabajo real. Quien abre la oficina a mitad de un trabajo ve en qué punto va. Funciona con el login de tu aplicación.
 
@@ -196,8 +202,8 @@ flowchart TD
     P2 --> P3["👥 Inventa el equipo<br/><sub>una persona por rol</sub>"]
     P3 --> P4["🗂️ Te propone las áreas<br/><sub>las confirmas o las cambias</sub>"]
     P4 --> P5["🏢 Monta la oficina<br/><sub>docs/oficina-virtual/</sub>"]
-    P5 --> P6{"¿Conectarla con<br/>tu aplicación?"}
-    P6 -- "Sí" --> P7["⚡ Escribe la conexión<br/><sub>te enseña los cambios antes</sub>"]
+    P5 --> P7["⚡ La conecta con tu app<br/><sub>te enseña los cambios antes</sub>"]
+    P7 --> P8["✅ La prueba en un navegador<br/><sub>y te da su dirección</sub>"]
     Q -- "Sí" --> C1["✏️ ¿Qué quieres cambiar?<br/><sub>áreas · personas · procesos · conexión · diseño</sub>"]
 ```
 
@@ -214,7 +220,7 @@ flowchart TD
 | 🏢 | **La oficina virtual** | 8 estilos, selector, simulación, vida de oficina e informe final. Se abre a pantalla completa |
 | 👥 | **El equipo ficticio** | Una ficha por persona: nombre, edad, ciudad, estudios, experiencia, responsabilidades y frase característica |
 | 📄 | **Informe para IT** *(opcional)* | Un HTML listo para adjuntar a una tarea de Jira: flujo, procesos, equipo, matriz de responsabilidades y tareas detectadas con criterios de aceptación |
-| ⚡ | **Conexión en directo** *(opcional)* | La librería y las llamadas en tu código para que la oficina se mueva con los trabajos reales |
+| ⚡ | **Conexión en directo** | La librería, las rutas y las llamadas en tu código para que la oficina se mueva con los trabajos reales, más una ruta de prueba |
 
 ---
 
@@ -229,12 +235,13 @@ plugins/livestage/
     ├── SKILL.md                           las instrucciones que sigue Claude
     ├── assets/
     │   ├── oficinas/                      los 8 estilos + datos.js de ejemplo
-    │   ├── conexion/oficina-eventos.js    la librería para conectar tu aplicación
+    │   ├── conexion/                      la librería para conectar tu aplicación (.cjs y .mjs)
     │   └── plantilla.html                 plantilla del informe para IT
     ├── references/
     │   ├── oficina-virtual.md             cómo se adapta la oficina a cada equipo
     │   └── conexion.md                    cómo se conecta a una aplicación
-    └── scripts/oficina.py                 buscar · instalar · migrar · comprobar · librería
+    └── scripts/                           oficina.py (buscar · instalar · migrar · comprobar · librería)
+                                           y probar-oficina.mjs (prueba en navegador)
 docs/demo/                                 la demo en directo (GitHub Pages)
 docs/img/                                  las imágenes de este README
 ```

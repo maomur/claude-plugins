@@ -216,16 +216,45 @@ Instalarla en el proyecto, en `docs/oficina-virtual/`, con
 está en la carpeta de esta skill). Después escribir su `datos.js`: equipo, áreas
 confirmadas en 5a, el estilo elegido y el Job. Los pasos del Job salen del flujo
 del paso 1 y las entregas, de lo que de verdad pasa de un proceso a otro.
-Terminar con `python3 scripts/oficina.py comprobar …` y abrir el estilo con
-`open`.
+Revisar los datos con `python3 scripts/oficina.py comprobar <carpeta>`.
 
-### 5c — Ofrecer la conexión con la aplicación
+### 5c — Conectarla con el trabajo real (obligatorio antes de entregar)
 
-Si el proyecto tiene servidor propio, al entregar la oficina ofrecer con el menú
-**«¿Quieres que la oficina se mueva con el trabajo real de tu aplicación?»** —
-«Sí, conéctala (Recomendado)» · «Ahora no». Si dice que sí, seguir
-`references/conexion.md`: enseñar antes qué archivos se tocan y esperar su visto
-bueno.
+La conexión **no es una oferta al final: es un paso del montaje.** Se propone
+siempre; lo único que se pide es el visto bueno a los archivos que se tocan.
+Seguir `references/conexion.md` entero. En resumen:
+
+1. **Buscar todos los sitios donde corre trabajo real**, no solo «un servidor»:
+   servidores HTTP (`createServer`, Express, Fastify, rutas API de Next…),
+   servidores y scripts locales (`npm run …`, carpetas `local/`, `scripts/`) y
+   ejecutores de tareas (Trigger.dev en `src/trigger/`, colas, cron, workers,
+   Lambda).
+2. **Elegir cómo llegan los eventos** según dónde corre el trabajo: mismo proceso
+   que el servidor → en directo (SSE); otro proceso o serverless → sondeo sobre
+   un almacén o el tiempo real del propio proveedor; si no hay otra cosa, al
+   menos el punto local donde corre el mismo proceso.
+3. **Engancharse a lo que ya existe** (observadores, callbacks, emisores de
+   progreso, logs estructurados) con una línea en cada sitio, y la traducción en
+   un archivo aparte, todo dentro de `try/catch`. No inventar actividad: quien no
+   tenga equivalente real en ese entorno no se mueve, y se dice.
+4. **Servir la oficina desde la aplicación** (`/oficina/`, protegida con el mismo
+   login) y añadir **`/oficina/prueba`**, que reproduce un trabajo falso de unos
+   40 s sin llamar a ningún servicio externo.
+5. **No reiniciar el servidor de la persona si hay trabajo en curso**: mirarlo
+   antes (log, estado de los trabajos) y, si lo hay, esperar o preguntar diciendo
+   que se perdería.
+6. **Comprobar de verdad**: `python3 scripts/oficina.py comprobar
+   http://localhost:<puerto>/oficina/ --prueba` (oficina, datos y eventos
+   responden, y la prueba pasa a modo directo y llega al informe final sin
+   errores de consola).
+
+Si de verdad no se puede conectar, **decirlo claro y por qué**. Nunca entregar en
+silencio una oficina sin conexión.
+
+**Si el proyecto no tiene servidor** (una web estática, una librería…), publicar
+la oficina como artefacto: la página principal es el estilo elegido y los otros
+siete más `datos.js` van como archivos adjuntos (`files`), para que el selector
+funcione. Así hay una dirección https que se puede abrir y compartir.
 
 ## Si el proyecto ya tiene oficina
 
@@ -240,7 +269,7 @@ cambios:
 | Tipo | Qué es | Dónde se cambia |
 |---|---|---|
 | `datos` | Carpeta con `datos.js` y los 8 estilos | En `datos.js`; lo recogen los 8 estilos |
-| `integrada` | Un HTML dentro de la aplicación que lee datos reales (por ejemplo `public/livestage.html`) | **En ese mismo HTML**, en sus bloques `T`, `ZONES`, `STEPS`, `ACT` y `HAND`. Nunca se migra ni se copia a otra carpeta: es la que usa la aplicación |
+| `integrada` | Un HTML dentro de la aplicación que lee datos reales (por ejemplo `public/oficina.html`) | **En ese mismo HTML**, en sus bloques `T`, `ZONES`, `STEPS`, `ACT` y `HAND`. Nunca se migra ni se copia a otra carpeta: es la que usa la aplicación |
 | `antigua` | Un HTML suelto con los datos dentro | Pasarla antes al formato nuevo con `python3 scripts/oficina.py migrar <html> <proyecto>/docs/oficina-virtual` (el archivo antiguo no se borra) y seguir como `datos` |
 
 Si hay más de una, preguntar en el menú cuál quiere cambiar.
@@ -281,18 +310,26 @@ donde diga la tabla de arriba:
 - **Analizar de nuevo:** volver al paso 1; al llegar a 5a, partir de las áreas que
   ya tenía y decir qué cambiaría.
 
-Terminar siempre con `python3 scripts/oficina.py comprobar <carpeta o html>`. En
-una `datos`, abrir el estilo de `estilo` con `open`. En una `integrada`, decirle
-dónde se ve en la aplicación (por ejemplo, «recarga la página de la oficina») y,
-si la aplicación está en marcha en local, comprobar que esa página carga. Al
-entregar, una frase con lo que ha cambiado.
+Terminar siempre con `python3 scripts/oficina.py comprobar <carpeta o html>` y,
+si la oficina se sirve desde la aplicación y está en marcha, con `comprobar
+http://localhost:<puerto>/oficina/ --prueba`. Al entregar, una frase con lo que ha
+cambiado y la **dirección** donde se ve (nunca una ruta de disco).
 
 ## Al entregar
 
-Una línea con para quién está escrito, la ruta completa del archivo y dos o tres
-frases con lo más importante que ha salido. Nada más: el resto está en el HTML.
-Si se ha montado la oficina virtual, dar su ruta aparte y decir que el estilo se
-cambia con el selector de arriba a la derecha.
+Una línea con para quién está escrito, la ruta completa del informe HTML (si se
+hizo) y dos o tres frases con lo más importante que ha salido. Nada más: el resto
+está en el HTML.
+
+La oficina se entrega **siempre como dirección web, nunca como ruta de disco**:
+`http://localhost:<puerto>/oficina/` si la sirve la aplicación, o el enlace del
+artefacto si no hay servidor. Junto a ella:
+
+- la dirección de **la prueba** (`/oficina/prueba`) para verla moverse sin gastar;
+- **qué está conectado** y a qué parte del trabajo real, y qué personas no se
+  mueven en ese entorno y por qué;
+- **si hay que reiniciar la aplicación** para que se cargue la conexión;
+- que el estilo se cambia con el selector de arriba a la derecha.
 
 ## Reglas
 

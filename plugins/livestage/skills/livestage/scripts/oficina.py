@@ -11,11 +11,12 @@ Uso:
         integrada  un HTML dentro de la aplicación que lee datos reales
                    (fetch, /api/…): se cambia en su sitio, nunca se migra
         antigua    un HTML suelto con los datos dentro: se puede migrar
-      Sale con código 1 si no hay ninguna.
+      Si no hay ninguna, dice «ninguna» (no es un error: sale con código 0).
 
   python3 oficina.py libreria CARPETA
-      Copia oficina-eventos.js (la librería que conecta la aplicación con la
-      oficina en directo) a CARPETA de la aplicación, p. ej. su lib/.
+      Copia la librería que conecta la aplicación con la oficina en directo a
+      CARPETA (p. ej. su lib/): oficina-eventos.cjs y oficina-eventos.mjs.
+      Lee el package.json más cercano y dice cuál importar (ESM o CommonJS).
 
   python3 oficina.py instalar DESTINO
       Copia (o actualiza) los 8 estilos en DESTINO. Si DESTINO ya tiene
@@ -30,6 +31,13 @@ Uso:
       Revisa que los datos sean coherentes: personas, puestos, áreas, pasos,
       tareas y entregas. Acepta la carpeta con datos.js o el HTML de una
       oficina integrada o antigua. Necesita node.
+
+  python3 oficina.py comprobar http://localhost:PUERTO/oficina/ [--prueba]
+      Revisa la oficina servida por la aplicación: /oficina/ y datos.js
+      responden 200 y /oficina/eventos responde como text/event-stream (o
+      /oficina/sondeo como JSON). Con --prueba, lanza /oficina/prueba en un
+      Chrome sin ventana y comprueba que pasa a modo directo, que sale el
+      informe final y que no hay errores en la consola (scripts/probar-oficina.mjs).
 """
 import os, re, shutil, subprocess, sys
 
@@ -69,7 +77,6 @@ def buscar(proyecto):
         print('%s\t%s' % (tipo, os.path.relpath(ruta, proyecto)))
     if not halladas:
         print('ninguna')
-        sys.exit(1)
 
 
 def instalar(destino):
@@ -209,6 +216,49 @@ process.exit(P.length ? 1 : 0);
 '''
 
 
+def comprobar_url(base, prueba):
+    sys.stdout.reconfigure(line_buffering=True)   # que las líneas salgan en orden con las de la prueba
+    import urllib.request, json as _json
+    base = base if base.endswith('/') else base + '/'
+    fallos = []
+    def pedir(url, cabeceras_solo=False):
+        req = urllib.request.Request(url, headers={'Accept': '*/*'})
+        r = urllib.request.urlopen(req, timeout=8)
+        if cabeceras_solo:
+            ct = r.headers.get('Content-Type', ''); r.close(); return r.status, ct, b''
+        return r.status, r.headers.get('Content-Type', ''), r.read(200000)
+    for nombre, url in [('oficina', base), ('datos.js', base + 'datos.js')]:
+        try:
+            st, ct, cuerpo = pedir(url)
+            print('%-10s %s %s' % (nombre, st, ct.split(';')[0]))
+            if st != 200: fallos.append(nombre)
+            if nombre == 'datos.js':
+                m = re.search(rb"directo:\s*\{\s*url:\s*'([^']+)'(?:\s*,\s*modo:\s*'(\w+)')?", cuerpo)
+                directo = (m.group(1).decode(), (m.group(2) or b'sse').decode()) if m else None
+        except Exception as e:
+            print('%-10s ERROR %s' % (nombre, e)); fallos.append(nombre); directo = None
+    if not directo:
+        print('directo    sin configurar en datos.js (la oficina no se moverá con la aplicación)'); fallos.append('directo')
+    else:
+        url, modo = base + directo[0], directo[1]
+        try:
+            st, ct, cuerpo = pedir(url, cabeceras_solo=(modo != 'sondeo'))
+            esperado = 'application/json' if modo == 'sondeo' else 'text/event-stream'
+            print('%-10s %s %s' % (directo[0], st, ct.split(';')[0]))
+            if st != 200 or esperado not in ct: fallos.append(directo[0])
+            if modo == 'sondeo': _json.loads(cuerpo or b'{}')
+        except Exception as e:
+            print('%-10s ERROR %s' % (directo[0], e)); fallos.append(directo[0])
+    if prueba and not fallos:
+        if not shutil.which('node'):
+            print('prueba     sin node: no se puede lanzar el navegador'); fallos.append('prueba')
+        else:
+            r = subprocess.run(['node', os.path.join(AQUI, 'probar-oficina.mjs'), base + 'prueba'])
+            if r.returncode: fallos.append('prueba')
+    print('OK' if not fallos else 'FALLA: ' + ', '.join(fallos))
+    sys.exit(1 if fallos else 0)
+
+
 def comprobar(destino):
     if not shutil.which('node'):
         raise SystemExit('Sin node no puedo revisar los datos: abrir la oficina en el navegador y mirar que cargue.')
@@ -239,13 +289,32 @@ if __name__ == '__main__':
         buscar(a[1])
     elif len(a) == 2 and a[0] == 'libreria':
         os.makedirs(a[1], exist_ok=True)
-        dst = os.path.join(a[1], 'oficina-eventos.js')
-        shutil.copyfile(os.path.join(AQUI, '..', 'assets', 'conexion', 'oficina-eventos.js'), dst)
-        print(os.path.abspath(dst))
+        for ext in ('cjs', 'mjs'):
+            shutil.copyfile(os.path.join(AQUI, '..', 'assets', 'conexion', 'oficina-eventos.' + ext), os.path.join(a[1], 'oficina-eventos.' + ext))
+        # ¿ESM o CommonJS? Lo dice el package.json más cercano
+        d, tipo = os.path.abspath(a[1]), 'commonjs'
+        while True:
+            pj = os.path.join(d, 'package.json')
+            if os.path.exists(pj):
+                try:
+                    import json as _json
+                    tipo = _json.load(open(pj, encoding='utf-8')).get('type', 'commonjs')
+                except Exception:
+                    pass
+                break
+            if os.path.dirname(d) == d: break
+            d = os.path.dirname(d)
+        print(os.path.abspath(a[1]))
+        if tipo == 'module':
+            print("Proyecto ESM: import oficina from './oficina-eventos.mjs';")
+        else:
+            print("Proyecto CommonJS: const oficina = require('./oficina-eventos.cjs');")
     elif len(a) == 2 and a[0] == 'instalar':
         instalar(a[1])
     elif len(a) == 3 and a[0] == 'migrar':
         migrar(a[1], a[2])
+    elif len(a) in (2, 3) and a[0] == 'comprobar' and a[1].startswith(('http://', 'https://')):
+        comprobar_url(a[1], '--prueba' in a[2:])
     elif len(a) == 2 and a[0] == 'comprobar':
         comprobar(a[1])
     else:

@@ -27,6 +27,7 @@ estilo: '4-ilustracion-plana.html',   // el estilo que se abre primero (se cambi
 // Solo si la oficina va metida en una aplicación:
 // volver: { texto: '← Volver a la app', url: '../' },
 // directo: { url: 'eventos' },   // la oficina se mueve con el trabajo real (ver references/conexion.md)
+// directo: { url: 'sondeo', modo: 'sondeo', cada: 2000 },   // igual, preguntando cada 2 s (trabajo en serverless, colas…)
 // extras: ['otro.js'],          // scripts propios, si hicieran falta
 
 /* ---------- Personas ---------- */
