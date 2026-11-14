@@ -6,7 +6,7 @@
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.6.0-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.6.1-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
@@ -171,12 +171,10 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 /plugin install livestage@livestage
 ```
 
-Recarga la ventana (`Cmd+Shift+P` → `Developer: Reload Window`).
-
 **2. Escribe en tu proyecto:**
 
 ```
-/oficina
+/livestage
 ```
 
 **3. Responde tres preguntas** (qué analizar, qué quieres recibir y en qué estilo) y deja que trabaje.
@@ -189,7 +187,7 @@ Recarga la ventana (`Cmd+Shift+P` → `Developer: Reload Window`).
 
 ```mermaid
 flowchart TD
-    S(["/oficina"]) --> Q{"¿El proyecto ya<br/>tiene oficina?"}
+    S(["/livestage"]) --> Q{"¿El proyecto ya<br/>tiene oficina?"}
     Q -- "No" --> P1["3 preguntas<br/><sub>qué analizar · qué recibir · estilo</sub>"]
     P1 --> P2["🔍 Analiza el flujo<br/>y los procesos"]
     P2 --> P3["👥 Inventa el equipo<br/><sub>una persona por rol</sub>"]
@@ -200,7 +198,7 @@ flowchart TD
     Q -- "Sí" --> C1["✏️ ¿Qué quieres cambiar?<br/><sub>áreas · personas · procesos · conexión · diseño</sub>"]
 ```
 
-**¿Ya la tienes?** Vuelve a escribir `/oficina` y, en vez de analizar de nuevo, te pregunta qué quieres cambiar: el nombre de un área, quién se sienta dónde, el nombre de un proceso… Todo vive en un solo archivo, `docs/oficina-virtual/datos.js`, que también puedes editar a mano.
+**¿Ya la tienes?** Vuelve a escribir `/livestage` y, en vez de analizar de nuevo, te pregunta qué quieres cambiar: el nombre de un área, quién se sienta dónde, el nombre de un proceso… Todo vive en un solo archivo, `docs/oficina-virtual/datos.js`, que también puedes editar a mano.
 
 **¿Prefieres hablar normal?** También funciona: *«analiza cómo funciona esta app»*, *«qué equipo haría falta para esto»*, *«enséñame al equipo en una oficina»*.
 
@@ -223,7 +221,7 @@ flowchart TD
 .claude-plugin/marketplace.json            el catálogo de plugins
 plugins/livestage/
 ├── .claude-plugin/plugin.json             datos y versión del plugin
-├── commands/oficina.md                    el comando /oficina (modo guiado)
+├── commands/livestage.md                el comando /livestage (modo guiado)
 └── skills/livestage/
     ├── SKILL.md                           las instrucciones que sigue Claude
     ├── assets/
@@ -269,7 +267,7 @@ La librería está hecha para <b>Node.js</b> (14 o superior). Para otros lenguaj
 <details>
 <summary><b>¿Puedo cambiar nombres después?</b></summary>
 <br>
-Sí. Escribe <code>/oficina</code> de nuevo y elige qué cambiar, o edita <code>docs/oficina-virtual/datos.js</code>: el archivo explica arriba qué se puede tocar. Los 8 estilos lo recogen a la vez.
+Sí. Escribe <code>/livestage</code> de nuevo y elige qué cambiar, o edita <code>docs/oficina-virtual/datos.js</code>: el archivo explica arriba qué se puede tocar. Los 8 estilos lo recogen a la vez.
 </details>
 
 <details>
@@ -280,7 +278,7 @@ Sí. Escribe <code>/oficina</code> de nuevo y elige qué cambiar, o edita <code>
 /plugin update livestage@livestage
 ```
 
-Y para llevar el nuevo diseño a una oficina que ya tienes, ejecuta <code>/oficina</code> y elige «Actualizar el diseño»: tus datos se mantienen.
+Y para llevar el nuevo diseño a una oficina que ya tienes, ejecuta <code>/livestage</code> y elige «Actualizar el diseño»: tus datos se mantienen.
 </details>
 
 ---

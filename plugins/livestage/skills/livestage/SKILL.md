@@ -14,7 +14,7 @@ dentro del HTML, no en el chat.
 
 ## Modo guiado: para quien no sabe nada de esto
 
-Usarlo cuando la petición llega por `/oficina`, cuando es vaga («hazme lo de la
+Usarlo cuando la petición llega por `/livestage`, cuando es vaga («hazme lo de la
 oficina») o cuando quien escribe no parece técnico. La persona no tiene por qué
 saber qué es un flujo, un proceso ni un HTML: solo responde y recibe el resultado.
 
@@ -27,7 +27,7 @@ ya tiene oficina». Las preguntas de inicio son solo para proyectos sin oficina.
 **Todas las preguntas de esta skill se hacen con el menú de selección**
 (`AskUserQuestion`), nunca escritas en un bloque de texto con opciones a), b),
 c): quien la usa espera pulsar una opción, no escribir «1a, 2b». Esto vale cada
-vez que se ejecute `/oficina`, también si en esta misma conversación un menú
+vez que se ejecute `/livestage`, también si en esta misma conversación un menú
 anterior se canceló o se cerró sin respuesta: se vuelve a mostrar el menú. Si
 `AskUserQuestion` no aparece entre las herramientas, cargarla con `ToolSearch`
 (`select:AskUserQuestion`) antes de preguntar.
@@ -48,7 +48,7 @@ ejemplo y preguntar cuál quiere también con el menú: como admite cuatro opcio
 poner los cuatro que mejor encajen; los otros se eligen escribiendo su nombre en
 la opción libre del menú. Si elige «Una página web», pedirle la dirección;
 si elige «Te lo explico yo», pedirle que cuente en dos o tres frases qué hace la
-aplicación. Si `/oficina` llega con texto detrás, usarlo como respuesta a la
+aplicación. Si `/livestage` llega con texto detrás, usarlo como respuesta a la
 primera pregunta y no volver a preguntarla. Solo si después de intentar cargarla
 la herramienta de preguntas sigue sin existir (por ejemplo, en una ejecución sin
 nadie delante), hacer las mismas preguntas en un mensaje numerado.
@@ -229,7 +229,7 @@ bueno.
 
 ## Si el proyecto ya tiene oficina
 
-Pasa cuando `buscar` encuentra una oficina, se haya pedido con `/oficina` o con
+Pasa cuando `buscar` encuentra una oficina, se haya pedido con `/livestage` o con
 otras palabras. La persona ya la tiene montada: lo que quiere es **cambiar
 cosas**, no empezar de cero. No volver a analizar ni a hacer las preguntas de
 inicio.
@@ -240,7 +240,7 @@ cambios:
 | Tipo | Qué es | Dónde se cambia |
 |---|---|---|
 | `datos` | Carpeta con `datos.js` y los 8 estilos | En `datos.js`; lo recogen los 8 estilos |
-| `integrada` | Un HTML dentro de la aplicación que lee datos reales (por ejemplo `public/oficina.html`) | **En ese mismo HTML**, en sus bloques `T`, `ZONES`, `STEPS`, `ACT` y `HAND`. Nunca se migra ni se copia a otra carpeta: es la que usa la aplicación |
+| `integrada` | Un HTML dentro de la aplicación que lee datos reales (por ejemplo `public/livestage.html`) | **En ese mismo HTML**, en sus bloques `T`, `ZONES`, `STEPS`, `ACT` y `HAND`. Nunca se migra ni se copia a otra carpeta: es la que usa la aplicación |
 | `antigua` | Un HTML suelto con los datos dentro | Pasarla antes al formato nuevo con `python3 scripts/oficina.py migrar <html> <proyecto>/docs/oficina-virtual` (el archivo antiguo no se borra) y seguir como `datos` |
 
 Si hay más de una, preguntar en el menú cuál quiere cambiar.
