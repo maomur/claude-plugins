@@ -288,6 +288,14 @@ Y para llevar el nuevo diseño a una oficina que ya tienes, ejecuta <code>/lives
 
 <div align="center">
 
+## 🎬 ¿Subimos tu aplicación al escenario?
+
+<a href="https://maomur.github.io/livestage/demo/"><img src="docs/img/vista-previa-redes.png" alt="LiveStage: tu aplicación, en escena. Pulsa para ver la demo en directo" width="100%"></a>
+
+**[▶ Ver la demo en directo](https://maomur.github.io/livestage/demo/)** · **[🚀 Instalarlo en 1 minuto](#-empezar-en-1-minuto)**
+
+<br>
+
 **Hecho con [Claude Code](https://claude.com/claude-code)**
 
 <sub>Si te gusta lo que ves, ⭐ el repositorio y cuéntanos qué oficina has montado.</sub>
