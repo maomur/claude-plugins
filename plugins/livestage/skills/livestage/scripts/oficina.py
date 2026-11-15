@@ -44,7 +44,10 @@ Uso:
       responden 200 y /oficina/eventos responde como text/event-stream (o
       /oficina/sondeo como JSON). Con --prueba, lanza /oficina/prueba en un
       Chrome sin ventana y comprueba que pasa a modo directo, que sale el
-      informe final y que no hay errores en la consola (scripts/probar-oficina.mjs).
+      informe final y que no hay errores en la consola; además, con el trabajo
+      en directo, hace 10 cambios de estilo con la bfcache activada y exige que
+      respondan en menos de 1 s, sin crecer el historial y con una sola
+      conexión en directo abierta (scripts/probar-oficina.mjs).
 """
 import json, os, re, shutil, subprocess, sys
 

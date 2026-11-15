@@ -920,7 +920,10 @@ const HAND = OFICINA.HAND;
 const playBtn=document.getElementById('play'), logEl=document.getElementById('log');
 (()=>{const btn=document.getElementById('estilo'),menu=document.getElementById('estiloMenu'),ops=[...menu.querySelectorAll('li')];
   const abrir=a=>{menu.hidden=!a;btn.setAttribute('aria-expanded',a);if(a)(ops.find(o=>o.getAttribute('aria-selected')==='true')||ops[0]).focus();};
-  const ir=o=>{try{window.OF_CERRAR_DIRECTO&&window.OF_CERRAR_DIRECTO();}catch(e){}location.href=o.dataset.v+location.search;};   // suelta la conexión antes de ir
+  /* replace y no href: cambiar de estilo no deja la página anterior en el historial, así que Chrome no la guarda en su caché
+     de ida y vuelta (bfcache) con la conexión en directo aún viva. Con href, cada cambio podía dejar una conexión abierta
+     hasta agotar las 6 por origen de HTTP/1.1 y bloquear la oficina. «Atrás» vuelve a la aplicación, no al estilo anterior. */
+  const ir=o=>{window.OF_SALIENDO=true;try{window.OF_CERRAR_DIRECTO&&window.OF_CERRAR_DIRECTO();}catch(e){}location.replace(o.dataset.v+location.search);};
   btn.addEventListener('click',()=>abrir(menu.hidden));
   btn.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();abrir(true);}});
   menu.addEventListener('click',e=>{const o=e.target.closest('li');if(o)ir(o);});

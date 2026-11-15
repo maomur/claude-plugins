@@ -66,6 +66,15 @@ propia aplicación (Socket.IO u otras). Detrás de HTTP/2 (Nginx o un proxy con 
 en producción) ese límite no existe. Si una aplicación necesita varias oficinas a
 la vista a la vez en local, usar el modo sondeo, que no deja ninguna conexión abierta.
 
+**Caché de ida y vuelta (bfcache).** Chrome puede guardar la página que se abandona
+con su conexión en directo aún viva. Por eso el selector cambia de estilo con
+`location.replace` (la página anterior no queda en el historial ni en la caché) y
+no con `location.href`. Si se toca el selector o se añade otra navegación dentro de
+la oficina, mantenerlo así. Ojo al probar: Playwright desactiva la bfcache por
+defecto (`--disable-back-forward-cache`) y no lo detectaría; `oficina.py comprobar
+--prueba` la deja activada y comprueba que 10 cambios de estilo con el trabajo en
+directo no crecen el historial y dejan una sola conexión abierta.
+
 En sondeo dentro del mismo proceso basta `oficina.sondeo`. En serverless, el
 endpoint lo escribe la skill leyendo del almacén, con la misma forma JSON: cada
 evento es un objeto como los que manda `canal` (`{ t: 'estado', id, estado, texto }`…).
