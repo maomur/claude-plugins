@@ -256,7 +256,10 @@ Seguir `references/conexion.md` entero. En resumen:
    tenga equivalente real en ese entorno no se mueve, y se dice.
 4. **Servir la oficina desde la aplicación** (`/oficina/`, protegida con el mismo
    login) y añadir **`/oficina/prueba`**, que reproduce un trabajo falso de unos
-   40 s sin llamar a ningún servicio externo.
+   40 s sin llamar a ningún servicio externo. **Si la aplicación tiene service
+   worker** (`serviceWorker.register`, `sw.js`, Workbox, `next-pwa`…), excluir
+   `/oficina/` de su `fetch` y subir la versión de su caché: si no, sujeta las
+   conexiones en directo y la oficina se cuelga. Enseñarlo en el plan.
 5. **No reiniciar el servidor de la persona si hay trabajo en curso**: mirarlo
    antes (log, estado de los trabajos) y, si lo hay, esperar o preguntar diciendo
    que se perdería.

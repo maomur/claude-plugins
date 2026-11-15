@@ -75,6 +75,20 @@ defecto (`--disable-back-forward-cache`) y no lo detectaría; `oficina.py compro
 --prueba` la deja activada y comprueba que 10 cambios de estilo con el trabajo en
 directo no crecen el historial y dejan una sola conexión abierta.
 
+**Service worker (PWA).** Si la aplicación registra uno (buscar
+`serviceWorker.register`, `sw.js`, `service-worker.js`, Workbox, `next-pwa`,
+`vite-plugin-pwa`…), su manejador `fetch` puede interceptar `/oficina/eventos`:
+si intenta guardarla en caché (`cache.put`, «stale-while-revalidate»…), lee una
+respuesta que no termina nunca y **sujeta la conexión aunque se cierre la
+pestaña**. A la sexta la oficina se cuelga. Arreglo, siempre que haya service
+worker: que su `fetch` no toque la oficina, por ejemplo
+`if (url.pathname.includes('/oficina/')) return;` antes del `respondWith` (en
+Workbox, una ruta `NetworkOnly` o excluirla del `navigateFallback`), nunca
+cachear `text/event-stream`, y subir la versión de su caché para que el
+navegador lo renueve. Entra en el plan del paso 6 como un archivo más. La
+librería ya manda `Cache-Control: no-store`, pero eso no frena a un service
+worker que cachea a mano.
+
 En sondeo dentro del mismo proceso basta `oficina.sondeo`. En serverless, el
 endpoint lo escribe la skill leyendo del almacén, con la misma forma JSON: cada
 evento es un objeto como los que manda `canal` (`{ t: 'estado', id, estado, texto }`…).
@@ -136,7 +150,8 @@ mismas llamadas, unos 40 s en total y **sin llamar a ningún servicio externo**
 
 1. Enseñar el plan antes de tocar nada: los archivos que se cambian y qué línea va
    en cada sitio. Esperar el visto bueno con el menú.
-2. Aplicar: librería, traductor, rutas, `directo` en `datos.js`.
+2. Aplicar: librería, traductor, rutas, `directo` en `datos.js` y, si hay
+   service worker, la exclusión de `/oficina/` (apartado 2).
 3. **Antes de reiniciar el servidor de la persona, mirar si hay trabajo en curso**
    (log, estado de los trabajos, procesos). Si lo hay, esperar o preguntar diciendo
    que se perdería. Si no se puede reiniciar, probar en una copia en otro puerto.
@@ -211,6 +226,9 @@ publicada» · «No lo sé».
 - **Ningún secreto en los eventos:** los textos de `trabaja`, `paso` o `fin`
   no llevan datos personales de clientes, claves ni importes sensibles; en
   producción los ve quien tenga acceso a la oficina.
+- **El service worker no toca la oficina:** si la aplicación es una PWA, su
+  `fetch` excluye `/oficina/` (al menos `/oficina/eventos` y `/oficina/sondeo`)
+  y la versión de su caché se ha subido para que los navegadores lo renueven.
 - **Nada que frene la aplicación:** las llamadas siguen dentro de `try/catch` y
   el almacén compartido, si lo hay, se escribe sin esperar la respuesta (sin
   `await` en el camino del trabajo real) o con un tiempo límite corto.

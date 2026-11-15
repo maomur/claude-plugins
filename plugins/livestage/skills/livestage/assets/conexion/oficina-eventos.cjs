@@ -136,7 +136,7 @@ function sse(req, res) {
   const visto = url.searchParams.get('visto');
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
-    'Cache-Control': 'no-cache, no-transform',
+    'Cache-Control': 'no-store, no-cache, no-transform',   // que nadie la guarde (ni un service worker)
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',          // que Nginx no lo retenga
   });
