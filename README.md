@@ -9,7 +9,7 @@
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.8.0-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.9.0-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
@@ -204,7 +204,7 @@ flowchart TD
     P4 --> P5["🏢 Monta la oficina<br/><sub>docs/oficina-virtual/</sub>"]
     P5 --> P7["⚡ La conecta con tu app<br/><sub>te enseña los cambios antes</sub>"]
     P7 --> P8["✅ La prueba en un navegador<br/><sub>y te da su dirección</sub>"]
-    Q -- "Sí" --> C1["✏️ ¿Qué quieres cambiar?<br/><sub>áreas · personas · procesos · conexión · diseño</sub>"]
+    Q -- "Sí" --> C1["✏️ ¿Qué quieres cambiar?<br/><sub>áreas y personas · procesos · conexión · actualizar</sub>"]
 ```
 
 **¿Ya la tienes?** Vuelve a escribir `/livestage` y, en vez de analizar de nuevo, te pregunta qué quieres cambiar: el nombre de un área, quién se sienta dónde, el nombre de un proceso… Todo vive en un solo archivo, `docs/oficina-virtual/datos.js`, que también puedes editar a mano.
@@ -288,7 +288,7 @@ Sí. Escribe <code>/livestage</code> de nuevo y elige qué cambiar, o edita <cod
 /plugin update livestage@livestage
 ```
 
-Y para llevar el nuevo diseño a una oficina que ya tienes, ejecuta <code>/livestage</code> y elige «Actualizar el diseño»: tus datos se mantienen.
+No hace falta estar pendiente: cada vez que escribes <code>/livestage</code>, el plugin mira si hay una versión nueva y te avisa con ese comando. Después, vuelve a escribir <code>/livestage</code> y elige «Actualizar a la última versión» para llevar el nuevo diseño a tu oficina: tus datos y la conexión se mantienen.
 </details>
 
 ---

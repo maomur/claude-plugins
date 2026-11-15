@@ -24,6 +24,15 @@ tiene oficina**, con `python3 scripts/oficina.py buscar <carpeta del proyecto>`
 las preguntas de abajo ni volver a analizar**: ir directamente a «Si el proyecto
 ya tiene oficina». Las preguntas de inicio son solo para proyectos sin oficina.
 
+**Y comprobar si hay una versión nueva**, con `python3 scripts/oficina.py
+version` (si hay oficina de tipo `datos`, pasarle su carpeta:
+`version <carpeta de la oficina>`). Si sale `ACTUALIZAR_PLUGIN`, decirlo en una
+sola línea antes de las preguntas, sin frenar nada: «Hay una versión nueva de
+LiveStage (la X; tienes la Y). Para tenerla, escribe `/plugin update
+livestage@livestage` y vuelve a escribir `/livestage`.» Claude no puede
+ejecutar ese comando por la persona: lo escribe ella. Si no hay conexión
+(`ultima` sale «desconocida»), no decir nada.
+
 **Todas las preguntas de esta skill se hacen con el menú de selección**
 (`AskUserQuestion`), nunca escritas en un bloque de texto con opciones a), b),
 c): quien la usa espera pulsar una opción, no escribir «1a, 2b». Esto vale cada
@@ -294,10 +303,12 @@ oficina por posición:** no cambiar las claves de las personas (`merce`,
 `ACT` y `HAND`. Los nombres, cargos y textos sí se cambian.
 
 Después, preguntar **con el menú** (varias respuestas a la vez): **«¿Qué quieres
-cambiar de la oficina?»** — «Nombres de las áreas» · «Personas: nombres, cargos o
-en qué área están» · «Pasos del trabajo y nombres de los procesos» · «Conectarla
-con mi aplicación o verla en producción». En la propia pregunta, recordar
-que puede escribir otra cosa, como «actualizar el diseño» o «analizar el
+cambiar de la oficina?»** — «Áreas y personas: nombres, cargos o quién se
+sienta dónde» · «Pasos del trabajo y nombres de los procesos» · «Conectarla con
+mi aplicación o verla en producción» · «Actualizar a la última versión». Si
+`version` dio `ACTUALIZAR_PLUGIN` o `ACTUALIZAR_DISENO`, añadir a esa opción
+«(hay una nueva)» y ponerla la primera; si dio `AL_DIA`, ponerla la última. En
+la propia pregunta, recordar que puede escribir otra cosa, como «analizar el
 proyecto de nuevo».
 
 Para cada cosa elegida, enseñar lo que hay ahora como lista numerada y pedirle
@@ -312,12 +323,20 @@ donde diga la tabla de arriba:
 - **Persona:** `name` y `short` para el nombre; `role` y `perfil` para el cargo;
   para moverla de área, su clave en `ids` de `ZONES` y su `SEAT` (un puesto libre
   de la sala nueva, de la tabla de la guía).
-- **Actualizar el diseño:** en una oficina `datos`, `python3 scripts/oficina.py
-  instalar …` sobre la misma carpeta; no toca `datos.js`. En una `integrada`, no
-  hay instalador: comparar su HTML con la plantilla del mismo estilo en
-  `assets/oficinas/` y llevar a mano las mejoras de diseño, sin tocar su
-  conexión con la aplicación ni sus datos. Avisar de que esta opción es más
-  trabajo que las otras.
+- **Actualizar a la última versión:** son dos cosas, y se hace lo que toque
+  según `version`:
+  1. **El plugin** (`ACTUALIZAR_PLUGIN`): Claude no puede actualizarlo. Decirle
+     que escriba `/plugin update livestage@livestage` y luego `/livestage` otra
+     vez, y que ahí se terminará de actualizar su oficina. No seguir con el
+     diseño hasta entonces: se instalaría el diseño viejo.
+  2. **El diseño de su oficina** (`ACTUALIZAR_DISENO`, con el plugin ya al día):
+     en una oficina `datos`, `python3 scripts/oficina.py instalar …` sobre la
+     misma carpeta; no toca `datos.js` ni la conexión, y apunta la versión.
+     En una `integrada` no hay instalador ni versión apuntada: comparar su
+     HTML con la plantilla del mismo estilo en `assets/oficinas/` y llevar a
+     mano las mejoras de diseño, sin tocar su conexión con la aplicación ni sus
+     datos. Avisar de que esto es más trabajo que las otras opciones.
+  Si sale `AL_DIA`, decirle que ya tiene la última versión, sin hacer nada.
 - **Conectarla con mi aplicación o verla en producción:** preguntar con el menú
   la misma cuarta pregunta del inicio («¿Dónde quieres ver la oficina?») y
   seguir `references/conexion.md`, incluido su apartado «9 · Producción» si la

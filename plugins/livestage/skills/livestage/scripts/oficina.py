@@ -27,6 +27,13 @@ Uso:
       Saca los datos de una oficina antigua (un único HTML con los datos
       dentro) a DESTINO/datos.js e instala los 8 estilos al lado.
 
+  python3 oficina.py version [CARPETA_OFICINA]
+      Dice qué versión de LiveStage está instalada, cuál es la última
+      publicada en GitHub (si hay conexión; si no, «desconocida») y, si se da
+      la carpeta de una oficina, con qué versión se instaló su diseño
+      («anterior» si es de antes de que se apuntara). Termina con las
+      recomendaciones: ACTUALIZAR_PLUGIN, ACTUALIZAR_DISENO o AL_DIA.
+
   python3 oficina.py comprobar DESTINO|HTML
       Revisa que los datos sean coherentes: personas, puestos, áreas, pasos,
       tareas y entregas. Acepta la carpeta con datos.js o el HTML de una
@@ -39,7 +46,7 @@ Uso:
       Chrome sin ventana y comprueba que pasa a modo directo, que sale el
       informe final y que no hay errores en la consola (scripts/probar-oficina.mjs).
 """
-import os, re, shutil, subprocess, sys
+import json, os, re, shutil, subprocess, sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PLANTILLAS = os.path.normpath(os.path.join(AQUI, '..', 'assets', 'oficinas'))
@@ -51,6 +58,9 @@ SALAS = {(15, 6): 'despacho', (7, 178): 'recepcion', (17, 84): 'izquierda', (127
          (276, 180): 'abajo-derecha', (138, 180): 'office'}
 BLOQUES = ['T', 'SEAT', 'ZONES', 'STEPS', 'ACT', 'HAND']
 SALTAR = {'node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'vendor', '.venv', 'venv', '__pycache__', 'coverage', '.cache'}
+PLUGIN_JSON = os.path.normpath(os.path.join(AQUI, '..', '..', '..', '.claude-plugin', 'plugin.json'))
+ULTIMA_URL = 'https://raw.githubusercontent.com/maomur/livestage/main/plugins/livestage/.claude-plugin/plugin.json'
+MARCA = '.livestage-version'   # en la carpeta de la oficina: versión con la que se instaló el diseño
 VIVO = re.compile(r'fetch\(|EventSource|WebSocket|/api/|XMLHttpRequest|socket\.io')
 
 
@@ -79,10 +89,55 @@ def buscar(proyecto):
         print('ninguna')
 
 
+def version_instalada():
+    try:
+        return json.load(open(PLUGIN_JSON, encoding='utf-8')).get('version') or 'desconocida'
+    except Exception:
+        return 'desconocida'
+
+
+def _tupla(v):
+    try:
+        return tuple(int(x) for x in v.split('.'))
+    except Exception:
+        return None
+
+
+def version(carpeta=None):
+    actual = version_instalada()
+    ultima = 'desconocida'
+    try:
+        import urllib.request
+        with urllib.request.urlopen(ULTIMA_URL, timeout=4) as r:
+            ultima = json.loads(r.read().decode('utf-8')).get('version') or 'desconocida'
+    except Exception:
+        pass
+    print('plugin\t' + actual)
+    print('ultima\t' + ultima)
+    avisos = []
+    if _tupla(actual) and _tupla(ultima) and _tupla(ultima) > _tupla(actual):
+        avisos.append('ACTUALIZAR_PLUGIN')
+    if carpeta:
+        oficina = 'anterior'
+        try:
+            oficina = open(os.path.join(carpeta, MARCA), encoding='utf-8').read().strip() or 'anterior'
+        except OSError:
+            pass
+        print('oficina\t' + oficina)
+        if os.path.exists(os.path.join(carpeta, 'datos.js')) and _tupla(actual) and \
+                (oficina == 'anterior' or (_tupla(oficina) and _tupla(oficina) < _tupla(actual))):
+            avisos.append('ACTUALIZAR_DISENO')
+    print('\n'.join(avisos) if avisos else 'AL_DIA')
+
+
 def instalar(destino):
     os.makedirs(destino, exist_ok=True)
     for f in ESTILOS:
         shutil.copyfile(os.path.join(PLANTILLAS, f), os.path.join(destino, f))
+    try:
+        open(os.path.join(destino, MARCA), 'w', encoding='utf-8').write(version_instalada() + '\n')
+    except OSError:
+        pass
     datos = os.path.join(destino, 'datos.js')
     if os.path.exists(datos):
         print('Estilos actualizados. datos.js se ha dejado como estaba.')
@@ -309,6 +364,8 @@ if __name__ == '__main__':
             print("Proyecto ESM: import oficina from './oficina-eventos.mjs';")
         else:
             print("Proyecto CommonJS: const oficina = require('./oficina-eventos.cjs');")
+    elif len(a) in (1, 2) and a[0] == 'version':
+        version(a[1] if len(a) == 2 else None)
     elif len(a) == 2 and a[0] == 'instalar':
         instalar(a[1])
     elif len(a) == 3 and a[0] == 'migrar':

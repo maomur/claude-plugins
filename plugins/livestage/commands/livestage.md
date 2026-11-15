@@ -8,8 +8,11 @@ Usa la skill `livestage` en **modo guiado**.
 - **Antes de preguntar nada**, busca si este proyecto ya tiene oficina con el
   script `buscar` de la skill. Si la tiene, no analices de nuevo ni hagas las
   preguntas de inicio: pregunta con el menú qué quiere cambiar (áreas,
-  personas, procesos, conectarla con su aplicación o actualizar el diseño) y
-  hazlo en la oficina que ya usa, sin moverla de sitio.
+  personas, procesos, conectarla con su aplicación o actualizar a la última
+  versión) y hazlo en la oficina que ya usa, sin moverla de sitio.
+- Mira también con el script `version` si hay una versión nueva del plugin y,
+  si la hay, avísale en una línea de que escriba `/plugin update
+  livestage@livestage` (tú no puedes ejecutarlo).
 - Si es la **primera vez**, haz las cuatro preguntas de inicio y, antes de montar
   la oficina, enséñale las áreas propuestas con sus nombres para que las
   confirme o las cambie. Para lo demás, no pidas más datos técnicos.
