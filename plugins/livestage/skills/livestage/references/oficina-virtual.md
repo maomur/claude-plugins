@@ -103,6 +103,11 @@ Y los seis bloques:
    - `x` — accesorios: `glasses:#color`, `headset`, `backpack`, `beard`,
      `camera`, `phones`, `earrings`, `necklace`, `scarf:#color`, `pen`,
      `suspenders`
+
+   Con `s` se dibuja a la persona en el plano y también su **retrato de
+   frente** en el panel «Team» (fichas tipo LinkedIn) y en la barra del Job.
+   Variar peinados, colores y accesorios para que cada retrato se distinga;
+   `perfil` sale como «Acerca de» y `mod` y `gesto` como «Experiencia».
 2. **`SEAT`** — en qué puesto se sienta cada persona (ver abajo) y una frase
    `seat` que describe su sitio. `x`, `y`, `dir`, `standing` y `chair` no se
    inventan: se copian de la tabla de puestos.
@@ -172,7 +177,7 @@ skill. Las opciones `volver` y `extras` siguen disponibles para casos especiales
 1. `instalar` en `docs/oficina-virtual/` del proyecto.
 2. Escribir `datos.js` con el equipo, las áreas confirmadas y el Job.
 3. `comprobar`. Si hay forma, abrir un estilo y hacer una captura a mitad de
-   simulación (pulsar «Simular un Job» y esperar unos segundos).
+   simulación (pulsar «Simular» y esperar unos segundos).
 4. Abrir con `open` el estilo de `estilo`. Si Mauricio quiere un enlace para
    compartir, publicarla como artefacto: la página principal es ese estilo y los
    otros siete más `datos.js` van como archivos adjuntos (`files`), con su mismo

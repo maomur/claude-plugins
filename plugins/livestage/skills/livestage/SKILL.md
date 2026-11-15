@@ -78,7 +78,7 @@ funciona…», «Ya tengo el equipo, monto la oficina…».
 
 **3. Entregar en lenguaje llano.** Al final, el enlace o la ruta y tres o cuatro
 frases: qué hace la aplicación, cuántas personas tiene el equipo y cómo se usa la
-oficina (pulsar a alguien para ver qué hace, «Simular un Job» para verlos
+oficina (pulsar a alguien para ver qué hace, «Simular» para verlos
 trabajar). Nada de nombres de archivos internos ni términos técnicos.
 
 ## Paso 1 — Entender el flujo

@@ -9,7 +9,7 @@
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.9.0-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.10.0-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
@@ -113,6 +113,9 @@ Quien no tiene tarea teclea, se estira y, de vez en cuando, va a por un café, a
 
 **🖱️ Pulsa a cualquiera**
 Ves qué está haciendo ahora mismo, su labor y todo lo que ha hecho en este trabajo.
+
+**👥 Team**
+Un botón abre el perfil de cada persona, al estilo LinkedIn: su retrato ilustrado, cargo, experiencia y su estado en directo.
 
 </td>
 <td width="50%" valign="top">
