@@ -24,7 +24,18 @@ const perfil = fs.mkdtempSync(path.join(os.tmpdir(), 'livestage-'));
 const chrome = spawn(chromeBin, ['--headless=new', `--remote-debugging-port=${puerto}`, `--user-data-dir=${perfil}`, '--hide-scrollbars',
   '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', 'about:blank'], { stdio: 'ignore' });
 const espera = ms => new Promise(r => setTimeout(r, ms));
-const salir = (codigo) => { try { chrome.kill(); } catch {} process.exit(codigo); };
+// Chrome se cierra siempre, salga como salga el script (error, Ctrl+C, process.exit desde otro sitio): un Chrome
+// sin ventana olvidado impide a macOS abrir el Chrome normal desde el Dock.
+const cerrarChrome = () => {
+  try { if (chrome.exitCode === null) chrome.kill('SIGKILL'); } catch {}
+  try { fs.rmSync(perfil, { recursive: true, force: true }); } catch {}
+};
+process.on('exit', cerrarChrome);
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => process.exit(130));
+process.on('uncaughtException', e => { console.log('prueba     error: ' + (e && e.message || e)); process.exit(1); });
+process.on('unhandledRejection', e => { console.log('prueba     error: ' + (e && e.message || e)); process.exit(1); });
+setTimeout(() => { console.log('prueba     tiempo agotado'); process.exit(1); }, (Number(maxSeg) + 120) * 1000).unref();
+const salir = (codigo) => process.exit(codigo);
 
 let ws;
 for (let i = 0; i < 60 && !ws; i++) {
