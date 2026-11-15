@@ -812,7 +812,7 @@ const HAND = OFICINA.HAND;
 const playBtn=document.getElementById('play'), logEl=document.getElementById('log');
 (()=>{const btn=document.getElementById('estilo'),menu=document.getElementById('estiloMenu'),ops=[...menu.querySelectorAll('li')];
   const abrir=a=>{menu.hidden=!a;btn.setAttribute('aria-expanded',a);if(a)(ops.find(o=>o.getAttribute('aria-selected')==='true')||ops[0]).focus();};
-  const ir=o=>{location.href=o.dataset.v+location.search;};
+  const ir=o=>{try{window.OF_CERRAR_DIRECTO&&window.OF_CERRAR_DIRECTO();}catch(e){}location.href=o.dataset.v+location.search;};   // suelta la conexión antes de ir
   btn.addEventListener('click',()=>abrir(menu.hidden));
   btn.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();abrir(true);}});
   menu.addEventListener('click',e=>{const o=e.target.closest('li');if(o)ir(o);});
@@ -920,9 +920,15 @@ if(OFICINA.directo&&OFICINA.directo.url&&window.EventSource){
     ahora=function(id){const st=state[id],L=LOG[id],l=L[L.length-1];
       if(st!=='idle'&&l)return l.msg;if(st==='waiting')return 'Esperando su turno.';if(st==='done')return 'Ya ha terminado su parte.';
       return DIRECTO.fin?'Sin trabajo en marcha ahora mismo.':'No interviene en este momento del trabajo.';};}
+  /* Al volver a una pestaña (o reconectar) la librería manda una «foto» del trabajo (e.foto). Si es el mismo trabajo que ya
+     se estaba viendo, se pone al día sin borrar el registro ni repetir el informe final. */
+  let canalVisto=null, finVisto=null;
   function aplicar(e){
+    if(e.foto&&e.canal&&e.canal===finVisto&&DIRECTO.fin)return;   // ese trabajo ya terminó y se vio entero
+    const mismo=!!(e.canal&&e.canal===canalVisto);if(e.canal)canalVisto=e.canal;
     switch(e.t){
       case 'inicio':
+        if(e.foto&&mismo&&DIRECTO.activo&&!DIRECTO.fin){barra('En marcha',[e.titulo,e.resumen].filter(Boolean).join(' · '));break;}
         if(DIRECTO.activo)limpiar();enDirecto();DIRECTO.fin=false;jobT0=performance.now();
         plan.classList.add('running');logEl.classList.add('live');progEl.style.width='0';
         barra('En marcha',[e.titulo,e.resumen].filter(Boolean).join(' · '));break;
@@ -936,7 +942,7 @@ if(OFICINA.directo&&OFICINA.directo.url&&window.EventSource){
       case 'paso':enDirecto();barra(e.titulo,e.texto);break;
       case 'progreso':enDirecto();progEl.style.width=(Math.max(0,Math.min(1,+e.valor||0))*100)+'%';break;
       case 'fin':
-        enDirecto();DIRECTO.fin=true;
+        enDirecto();DIRECTO.fin=true;finVisto=e.canal||null;
         for(const id of ids){if(state[id]==='working'||state[id]==='blocked')setState(id,'done');else if(state[id]==='waiting')setState(id,'idle');}
         plan.classList.remove('running');logEl.classList.remove('live');progEl.style.width='100%';
         barra(e.ok===false?'Detenido':'Fin',(e.ok===false?'':'✓ ')+(e.titulo||(e.ok===false?'El trabajo se ha detenido':'Trabajo completado')));
@@ -949,15 +955,27 @@ if(OFICINA.directo&&OFICINA.directo.url&&window.EventSource){
   if(OFICINA.directo.modo==='sondeo'){   // sin conexión abierta: pregunta cada pocos segundos (trabajo en serverless, colas…)
     const q=new URLSearchParams(location.search);let desde=0,fallos=0;
     (async function sondear(){
+      if(document.hidden){setTimeout(sondear,1000);return;}   // pestaña oculta: no pregunta; al volver se pone al día con «desde»
       try{q.set('desde',desde);const r=await fetch(OFICINA.directo.url+'?'+q,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error(r.status);
         const j=await r.json();for(const e of (j.eventos||[])){try{aplicar(e);}catch(err){console.warn('Evento de la oficina no válido',err);}}
         if(typeof j.siguiente==='number')desde=j.siguiente;fallos=0;}
       catch(err){if(++fallos>2&&DIRECTO.activo&&!DIRECTO.fin)barra('Reconectando','No llegan datos de la aplicación…');}
       setTimeout(sondear,Math.max(800,+OFICINA.directo.cada||2000));})();
   }else{
-    const fuente=new EventSource(OFICINA.directo.url+(location.search||''));
-    fuente.onmessage=m=>{try{aplicar(JSON.parse(m.data));}catch(err){console.warn('Evento de la oficina no válido',err);}};
-    fuente.onerror=()=>{if(DIRECTO.activo&&!DIRECTO.fin)barra('Reconectando','Se ha perdido la conexión con la aplicación…');};
+    /* Una conexión abierta por pestaña ocupa uno de los 6 huecos que da el navegador por origen en HTTP/1.1 (localhost).
+       Por eso solo la mantiene la pestaña que está a la vista: al ocultarse la cierra, al volver la reabre y se pone al
+       día (visto=<trabajo> pide el estado aunque ese trabajo ya haya terminado). También se cierra antes de cambiar de estilo. */
+    let fuente=null;
+    const dir=()=>{const q=new URLSearchParams(location.search);if(canalVisto&&!q.has('job')&&!q.has('canal'))q.set('visto',canalVisto);const s=q.toString();return OFICINA.directo.url+(s?'?'+s:'');};
+    const abrir=()=>{if(fuente||document.hidden)return;fuente=new EventSource(dir());
+      fuente.onmessage=m=>{try{aplicar(JSON.parse(m.data));}catch(err){console.warn('Evento de la oficina no válido',err);}};
+      fuente.onerror=()=>{if(DIRECTO.activo&&!DIRECTO.fin)barra('Reconectando','Se ha perdido la conexión con la aplicación…');};};
+    const cerrar=()=>{if(fuente){fuente.close();fuente=null;}};
+    window.OF_CERRAR_DIRECTO=cerrar;
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)cerrar();else abrir();});
+    addEventListener('pagehide',cerrar);
+    addEventListener('pageshow',e=>{if(e.persisted)abrir();});
+    abrir();
   }
 }
 

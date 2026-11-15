@@ -105,7 +105,7 @@ class Canal {
     if (this.pasoEv) ev.push({ ...this.pasoEv });
     if (this.progresoV !== null) ev.push({ t: 'progreso', valor: this.progresoV });
     if (this.finEv) ev.push({ ...this.finEv, repeticion: true });
-    return ev.map(e => ({ ...e, canal: this.id }));
+    return ev.map(e => ({ ...e, canal: this.id, foto: true }));
   }
   /** Para el modo sondeo: eventos desde la posición `desde` (0 = estado completo actual). */
   historial(desde) {
@@ -128,9 +128,12 @@ function pedido(req) {
 }
 
 /** Ruta de eventos en directo (Server-Sent Events). ?job=<id> o ?canal=<id> para un trabajo
-    concreto; sin parámetro, sigue al último trabajo que empezó. */
+    concreto; sin parámetro, sigue al último trabajo que empezó. ?visto=<id>: la pestaña ya estaba
+    viendo ese trabajo (se ocultó y vuelve); si sigue siendo el último, recibe su estado aunque ya
+    haya terminado, para ponerse al día con el informe final. */
 function sse(req, res) {
-  const { canalId } = pedido(req);
+  const { url, canalId } = pedido(req);
+  const visto = url.searchParams.get('visto');
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
@@ -140,7 +143,8 @@ function sse(req, res) {
   res.write('retry: 3000\n\n');
   const o = { res, canal: canalId };
   oyentes.add(o);
-  const c = canalId ? canales.get(canalId) : (ultimo && ultimo.activo ? ultimo : null);
+  let c = canalId ? canales.get(canalId) : (ultimo && ultimo.activo ? ultimo : null);
+  if (!c && !canalId && visto && ultimo && ultimo.id === visto) c = ultimo;
   if (c) for (const ev of c._foto()) enviar(res, ev);
   const latido = setInterval(() => { try { res.write(': latido\n\n'); } catch (e) { /* cerrada */ } }, 25000);
   req.on('close', () => { clearInterval(latido); oyentes.delete(o); });

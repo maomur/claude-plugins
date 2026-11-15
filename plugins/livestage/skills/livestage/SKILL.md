@@ -332,6 +332,10 @@ donde diga la tabla de arriba:
   2. **El diseño de su oficina** (`ACTUALIZAR_DISENO`, con el plugin ya al día):
      en una oficina `datos`, `python3 scripts/oficina.py instalar …` sobre la
      misma carpeta; no toca `datos.js` ni la conexión, y apunta la versión.
+     Si la aplicación tiene la librería de conexión (`oficina-eventos.cjs`/`.mjs`
+     en su código), actualizarla también con `python3 scripts/oficina.py
+     libreria <su carpeta>`: trae mejoras de la conexión en directo (por ejemplo,
+     que una pestaña que vuelve se ponga al día con el informe final).
      En una `integrada` no hay instalador ni versión apuntada: comparar su
      HTML con la plantilla del mismo estilo en `assets/oficinas/` y llevar a
      mano las mejoras de diseño, sin tocar su conexión con la aplicación ni sus

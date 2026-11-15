@@ -55,6 +55,17 @@ Buscar **todos** los sitios, no solo «un servidor»:
 | Igual, y el proveedor tiene tiempo real propio | Ese canal (p. ej. metadatos y suscripción en tiempo real de Trigger.dev). **Comprobar la API actual antes de usarla** | Según el caso |
 | Solo es posible en local | Como mínimo, conectar el punto local donde corre el mismo proceso (un generador, un servidor de pruebas) y decir que en producción no se mueve | `directo: { url: 'eventos' }` |
 
+**Límite de conexiones en local.** Con HTTP/1.1 (lo normal en `http://localhost`)
+el navegador abre como mucho 6 conexiones a la vez con el mismo origen, y cada
+conexión en directo ocupa una mientras está abierta. Por eso las plantillas solo
+la mantienen en la pestaña que está a la vista: al ocultarse la cierran, al volver
+la reabren y se ponen al día (la librería manda el estado actual, también el
+informe final si el trabajo acabó mientras tanto, con `?visto=<trabajo>`), y la
+sueltan antes de cambiar de estilo. Así caben muchas pestañas de la oficina más la
+propia aplicación (Socket.IO u otras). Detrás de HTTP/2 (Nginx o un proxy con TLS
+en producción) ese límite no existe. Si una aplicación necesita varias oficinas a
+la vista a la vez en local, usar el modo sondeo, que no deja ninguna conexión abierta.
+
 En sondeo dentro del mismo proceso basta `oficina.sondeo`. En serverless, el
 endpoint lo escribe la skill leyendo del almacén, con la misma forma JSON: cada
 evento es un objeto como los que manda `canal` (`{ t: 'estado', id, estado, texto }`…).
