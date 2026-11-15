@@ -9,7 +9,7 @@
 
 **Analiza tu proyecto · inventa el equipo que lo haría funcionar · y lo pone a trabajar en una oficina animada que se mueve con los trabajos reales de tu aplicación**
 
-![Versión](https://img.shields.io/badge/versión-1.7.0-1FA97E?style=for-the-badge)
+![Versión](https://img.shields.io/badge/versión-1.8.0-1FA97E?style=for-the-badge)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=for-the-badge)
 ![Estilos](https://img.shields.io/badge/estilos-8-6C8CFF?style=for-the-badge)
 ![Sin dependencias](https://img.shields.io/badge/dependencias-0-2E3350?style=for-the-badge)
@@ -162,7 +162,7 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 | `paso` · `progreso` | El texto y la barra de progreso de arriba |
 | `fin` | El jefe anuncia el final con el informe |
 
-- **Dónde se ve:** en tu propia aplicación, `http://localhost:<puerto>/oficina/`, con tu login.
+- **Dónde se ve:** en tu propia aplicación, `http://localhost:<puerto>/oficina/`, con tu login. Y si lo pides, también en producción: `https://tu-dominio/oficina/` (el plugin deja el código listo según dónde esté publicada).
 - **Funciona con** servidores Node (CommonJS o ESM) y con trabajos en otro proceso o serverless (Trigger.dev, colas, cron) por sondeo.
 - **`/oficina/prueba`** lanza un trabajo falso de unos 40 s, sin gastar nada, para verla moverse.
 - El plugin **la comprueba en un navegador** antes de entregártela.
@@ -186,7 +186,7 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 /livestage
 ```
 
-**3. Responde tres preguntas** (qué analizar, qué quieres recibir y en qué estilo) y deja que trabaje.
+**3. Responde cuatro preguntas** (qué analizar, qué quieres recibir, en qué estilo y si la quieres también en producción) y deja que trabaje.
 
 > 👀 ¿Quieres verlo antes de instalar nada? Abre la **[demo en directo](https://maomur.github.io/livestage/demo/)**: es exactamente lo que tendrás en tu proyecto, con un trabajo de ejemplo.
 
@@ -197,7 +197,7 @@ c.fin({ filas: [['Procesados', '24'], ['Encontrados', '22', 'ok'], ['No encontra
 ```mermaid
 flowchart TD
     S(["/livestage"]) --> Q{"¿El proyecto ya<br/>tiene oficina?"}
-    Q -- "No" --> P1["3 preguntas<br/><sub>qué analizar · qué recibir · estilo</sub>"]
+    Q -- "No" --> P1["4 preguntas<br/><sub>qué analizar · qué recibir · estilo · ¿producción?</sub>"]
     P1 --> P2["🔍 Analiza el flujo<br/>y los procesos"]
     P2 --> P3["👥 Inventa el equipo<br/><sub>una persona por rol</sub>"]
     P3 --> P4["🗂️ Te propone las áreas<br/><sub>las confirmas o las cambias</sub>"]

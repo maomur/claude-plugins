@@ -141,3 +141,75 @@ arregla antes de entregar.
   en ese entorno y por qué; si falta algo (p. ej. producción en serverless), qué
   haría falta.
 - Si hay que reiniciar la aplicación.
+
+## 9 · Producción
+
+Solo si la persona quiere ver la oficina también en internet. La oficina no es
+un programa aparte: son rutas de la aplicación, así que se publica con ella y se
+ve en `https://<su dominio>/oficina/`, con el mismo login. **No desplegar ni
+publicar nada por ella** salvo que lo pida expresamente: se deja el código listo
+y se le dice qué tiene que hacer.
+
+### 9a · Averiguar dónde está publicada
+
+Mirar los archivos del proyecto antes de preguntar: `vercel.json` o `.vercel/`
+(Vercel), `netlify.toml` (Netlify), `fly.toml` (Fly.io), `render.yaml` (Render),
+`railway.json` (Railway), `Procfile` (Heroku y similares), `Dockerfile` o
+`docker-compose.yml` (contenedor en servidor propio), `serverless.yml` o
+`template.yaml` (Lambda), `wrangler.toml` (Cloudflare), configuraciones de Nginx,
+`pm2`/`ecosystem.config.js` (varias copias del proceso) y los flujos de
+`.github/workflows/`. Si no queda claro, preguntar una sola vez con el menú:
+«¿Dónde está publicada tu aplicación?» — «En un servidor (VPS, Render, Railway,
+Fly…)» · «En Vercel, Netlify u otro servicio serverless» · «Todavía no está
+publicada» · «No lo sé».
+
+### 9b · Qué hacer según el caso
+
+| Dónde corre | Qué hace falta |
+|---|---|
+| **Un solo servidor que se queda encendido** (VPS, Render, Railway, Fly con una máquina, Docker) | Casi nada: las mismas rutas que en local. Revisar la lista de 9c |
+| **Detrás de Nginx, Cloudflare u otro proxy** | Que no retenga ni corte la conexión en directo: en Nginx, `proxy_buffering off` y `proxy_read_timeout` alto para `/oficina/eventos` (la librería ya manda `X-Accel-Buffering: no`). Si aun así se corta, pasar a sondeo: `directo: { url: 'sondeo', modo: 'sondeo', cada: 2000 }` |
+| **Varias copias del proceso** (pm2 en modo cluster, varias máquinas, autoescalado) | La librería guarda los eventos en la memoria de cada copia: quien mira la oficina puede estar en otra copia y no ver nada. Opciones, de más fácil a más completa: sesiones fijas (*sticky sessions*) para `/oficina/`, o guardar los eventos en un almacén compartido (Redis, la base de datos, KV) y servirlos por sondeo |
+| **Serverless** (Vercel, Netlify, Lambda, Cloudflare) o **trabajos en otro proceso** (Trigger.dev, colas, cron) | No hay memoria compartida ni conexiones largas: los trabajos escriben sus eventos en un almacén compartido y la oficina lee por sondeo, como en el apartado 2. Usar el almacén que el proyecto ya tenga antes de añadir uno nuevo, y decir si hace falta contratar o configurar algo |
+| **Todavía no está publicada** | Dejar el código listo para el caso más probable según el proyecto y decir qué cambiaría al elegir dónde publicar |
+
+### 9c · Lista antes de dar por buena la versión de producción
+
+- **La carpeta de la oficina se publica:** `docs/oficina-virtual/` tiene que
+  llegar al servidor. Revisar `.dockerignore`, `.vercelignore`, `files` del
+  `package.json`, la configuración del empaquetado (en Vercel/Next, incluir la
+  carpeta en los archivos de la función o moverla a `public/` y servir solo los
+  eventos desde la app) y que la ruta de `oficina.estatico(...)` sea relativa al
+  directorio desde el que arranca la aplicación en producción.
+- **El login es el de verdad:** `proteger` tiene que ser el mismo control de
+  acceso que el resto de la aplicación en producción, no uno de pruebas. Sin
+  sesión, `/oficina/`, `/oficina/eventos` y `/oficina/sondeo` no deben responder
+  con datos.
+- **La prueba no la lanza cualquiera:** `/oficina/prueba` sigue protegida y, si
+  la aplicación tiene administradores, solo para ellos. Si la persona prefiere,
+  se desactiva en producción (por ejemplo con `NODE_ENV === 'production'`).
+- **Ningún secreto en los eventos:** los textos de `trabaja`, `paso` o `fin`
+  no llevan datos personales de clientes, claves ni importes sensibles; en
+  producción los ve quien tenga acceso a la oficina.
+- **Nada que frene la aplicación:** las llamadas siguen dentro de `try/catch` y
+  el almacén compartido, si lo hay, se escribe sin esperar la respuesta (sin
+  `await` en el camino del trabajo real) o con un tiempo límite corto.
+
+### 9d · Comprobar
+
+- En local, arrancar la aplicación como en producción (`NODE_ENV=production`
+  y el mismo comando de arranque) y pasar `oficina.py comprobar … --prueba`.
+- Comprobar que sin sesión `/oficina/` pide login (redirección o 401), por
+  ejemplo con `curl -I`.
+- Cuando la persona la haya publicado, si da la dirección, comprobar con
+  `curl -I https://<dominio>/oficina/` que responde y pide login. No hace falta
+  iniciar sesión con sus credenciales: la prueba completa la hace ella abriendo
+  `https://<dominio>/oficina/prueba`.
+
+### 9e · Entregar
+
+- La dirección que tendrá: `https://<su dominio>/oficina/`.
+- Qué se ha cambiado para producción y por qué, en dos o tres frases.
+- Los pasos que le tocan (subir los cambios, configurar Redis o la variable que
+  falte, reiniciar), numerados y en lenguaje llano.
+- Qué no funcionará en producción, si algo queda fuera, y qué haría falta.

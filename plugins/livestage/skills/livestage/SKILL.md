@@ -42,6 +42,14 @@ que sea un único momento:
 - **¿En qué estilo quieres la oficina?** — «Ilustración plana, amable y moderna
   (Recomendado)» · «3D realista, se puede girar» · «Isométrico, maqueta de
   juguete» · «Ver los 8 estilos con ejemplos»
+- **¿Dónde quieres ver la oficina?** — «Solo en mi ordenador, mientras trabajo
+  (Recomendado)» · «También en internet, dentro de mi aplicación publicada» ·
+  «No lo sé todavía»
+
+La cuarta solo cuenta si va a recibir la oficina y se analiza un proyecto con
+servidor; si no, se ignora la respuesta. «No lo sé todavía» se trata como «solo
+en mi ordenador», y al entregar se le dice en una frase que se puede publicar
+más adelante volviendo a escribir `/livestage`.
 
 Si elige «Ver los 8 estilos», enseñar la lista del paso 5 con sus enlaces de
 ejemplo y preguntar cuál quiere también con el menú: como admite cuatro opciones,
@@ -248,6 +256,12 @@ Seguir `references/conexion.md` entero. En resumen:
    responden, y la prueba pasa a modo directo y llega al informe final sin
    errores de consola).
 
+7. **Si la quiere también en producción**, seguir el apartado «9 · Producción»
+   de `references/conexion.md`: averiguar dónde está publicada la aplicación,
+   dejar el código listo para ese entorno y decirle qué tiene que hacer él para
+   publicarla. **Nunca publicar ni desplegar por él** sin que lo pida
+   expresamente.
+
 Si de verdad no se puede conectar, **decirlo claro y por qué**. Nunca entregar en
 silencio una oficina sin conexión.
 
@@ -281,8 +295,8 @@ oficina por posición:** no cambiar las claves de las personas (`merce`,
 
 Después, preguntar **con el menú** (varias respuestas a la vez): **«¿Qué quieres
 cambiar de la oficina?»** — «Nombres de las áreas» · «Personas: nombres, cargos o
-en qué área están» · «Pasos del trabajo y nombres de los procesos» · «Conectar con mi
-aplicación (que se mueva con el trabajo real)». En la propia pregunta, recordar
+en qué área están» · «Pasos del trabajo y nombres de los procesos» · «Conectarla
+con mi aplicación o verla en producción». En la propia pregunta, recordar
 que puede escribir otra cosa, como «actualizar el diseño» o «analizar el
 proyecto de nuevo».
 
@@ -304,9 +318,11 @@ donde diga la tabla de arriba:
   `assets/oficinas/` y llevar a mano las mejoras de diseño, sin tocar su
   conexión con la aplicación ni sus datos. Avisar de que esta opción es más
   trabajo que las otras.
-- **Conectar con mi aplicación:** seguir `references/conexion.md`. Si ya está
-  conectada (`datos.js` tiene `directo`), revisar que la ruta y las llamadas
-  siguen en su sitio y ofrecer añadir lo que falte.
+- **Conectarla con mi aplicación o verla en producción:** preguntar con el menú
+  la misma cuarta pregunta del inicio («¿Dónde quieres ver la oficina?») y
+  seguir `references/conexion.md`, incluido su apartado «9 · Producción» si la
+  quiere en internet. Si ya está conectada (`datos.js` tiene `directo`), revisar
+  que la ruta y las llamadas siguen en su sitio y añadir solo lo que falte.
 - **Analizar de nuevo:** volver al paso 1; al llegar a 5a, partir de las áreas que
   ya tenía y decir qué cambiaría.
 
@@ -329,6 +345,9 @@ artefacto si no hay servidor. Junto a ella:
 - **qué está conectado** y a qué parte del trabajo real, y qué personas no se
   mueven en ese entorno y por qué;
 - **si hay que reiniciar la aplicación** para que se cargue la conexión;
+- si la quiere en producción: la dirección que tendrá
+  (`https://<su dominio>/oficina/`), lo que queda listo y los pasos que le
+  tocan a él para publicarla, en lenguaje llano;
 - que el estilo se cambia con el selector de arriba a la derecha.
 
 ## Reglas

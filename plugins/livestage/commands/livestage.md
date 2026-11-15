@@ -10,7 +10,7 @@ Usa la skill `livestage` en **modo guiado**.
   preguntas de inicio: pregunta con el menú qué quiere cambiar (áreas,
   personas, procesos, conectarla con su aplicación o actualizar el diseño) y
   hazlo en la oficina que ya usa, sin moverla de sitio.
-- Si es la **primera vez**, haz las tres preguntas de inicio y, antes de montar
+- Si es la **primera vez**, haz las cuatro preguntas de inicio y, antes de montar
   la oficina, enséñale las áreas propuestas con sus nombres para que las
   confirme o las cambie. Para lo demás, no pidas más datos técnicos.
 
