@@ -36,6 +36,66 @@ Lo que trae:
 | `oficina.canal(id)` | Un canal por trabajo, con las llamadas de abajo |
 | `oficina.ensayo(guion)` | Reproduce un trabajo falso con sus pausas: para `/oficina/prueba` |
 
+## Si la aplicación no es Node (Python, PHP, Ruby, Go, Java…)
+
+La librería es para Node, pero la oficina solo necesita HTTP y JSON. Se escribe el
+equivalente en el lenguaje de la aplicación, en un archivo aparte (`oficina_eventos.py`,
+`OficinaEventos.php`…), con lo mismo que hace `oficina-eventos.cjs`, que sirve de
+referencia exacta. Las plantillas no cambian.
+
+**Rutas** (con el mismo login que el resto de la aplicación):
+
+| Ruta | Qué devuelve |
+|---|---|
+| `/oficina/` | Redirección 302 al estilo de `datos.js` (por defecto `4-ilustracion-plana.html`), conservando `?job=` |
+| `/oficina/<archivo>` | Solo `.html` y `.js` de la carpeta de la oficina, sin subcarpetas ni nombres con `..` |
+| `/oficina/eventos` | Server-Sent Events (si el servidor admite respuestas largas) |
+| `/oficina/sondeo` | JSON por sondeo (si no las admite: PHP clásico, serverless, workers con tiempo límite) |
+| `/oficina/prueba` | Lanza un trabajo falso de ~40 s y redirige a `/oficina/?job=<id>` |
+
+**Eventos en directo** (`/oficina/eventos`):
+- Cabeceras: `Content-Type: text/event-stream; charset=utf-8`,
+  `Cache-Control: no-store, no-cache, no-transform`, `X-Accel-Buffering: no`.
+- Primero `retry: 3000`, después cada evento como `data: <JSON>` + línea en blanco,
+  y un comentario `: latido` cada 25 s para que no se corte.
+- Al conectarse, mandar la «foto» del trabajo con `foto: true` en cada evento:
+  `inicio`, el último estado de cada persona, el último `paso`, el último
+  `progreso` y, si acabó, `fin` con `repeticion: true`.
+- Qué trabajo: `?job=<id>` o `?canal=<id>`, ese; sin parámetro, el último que
+  empezó si sigue activo; `?visto=<id>`, también el último aunque haya acabado si
+  su id coincide (es una pestaña que vuelve a la vista).
+- Si el servidor no aguanta conexiones abiertas (un proceso por petición), usar sondeo.
+
+**Sondeo** (`/oficina/sondeo?desde=<n>&job=<id>`): `{ "eventos": [...], "siguiente": n }`.
+Con `desde=0` o una posición que ya no existe, la foto completa; si no, los
+eventos desde esa posición. En `datos.js`: `directo: { url: 'sondeo', modo: 'sondeo', cada: 2000 }`.
+
+**Forma de los eventos** (cada uno lleva `canal`: el id del trabajo):
+
+```json
+{ "t": "inicio",   "titulo": "Pedido 123", "resumen": "24 productos" }
+{ "t": "estado",   "id": "nadia", "estado": "working", "texto": "Busca el producto 4" }
+{ "t": "entrega",  "de": "nadia", "a": "rosa", "objeto": "box", "etiqueta": "Producto 4" }
+{ "t": "paso",     "titulo": "Búsqueda", "texto": "Nadia busca productos" }
+{ "t": "progreso", "valor": 0.25 }
+{ "t": "fin",      "ok": true, "titulo": "Trabajo completado", "filas": [["Procesados", "24"], ["No encontrados", "2", "mal"]], "nota": "" }
+```
+
+`estado`: `working`, `waiting`, `blocked`, `done` o `idle`. `objeto`: `ticket box photos
+folder postit pen sign zip`; `de: "door"` = entra por la puerta. Las claves de las
+personas son las de `T` en `datos.js`.
+
+**Reglas que no cambian con el lenguaje:** avisar a la oficina nunca puede romper
+ni frenar el trabajo (todo protegido, sin esperar a nadie); no repetir un estado
+idéntico; espaciar las entregas repetitivas (~1,6 s) salvo los hitos; guardar el
+estado de cada trabajo para la foto (en memoria si hay un solo proceso, en Redis o
+la base de datos si hay varios, como en el apartado 9). Si el trabajo corre en
+otro proceso que la web (Celery, Sidekiq, colas, cron), los eventos van por un
+almacén compartido y se sirven por sondeo o leyendo de ese almacén.
+
+**Comprobar** igual que con Node: `python3 scripts/oficina.py comprobar
+http://localhost:<puerto>/oficina/ --prueba` no depende del lenguaje.
+
 ## 1 · Dónde corre el trabajo real
 
 Buscar **todos** los sitios, no solo «un servidor»:

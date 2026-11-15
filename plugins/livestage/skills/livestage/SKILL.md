@@ -241,6 +241,10 @@ La conexión **no es una oferta al final: es un paso del montaje.** Se propone
 siempre; lo único que se pide es el visto bueno a los archivos que se tocan.
 Seguir `references/conexion.md` entero. En resumen:
 
+0. **Sirve para cualquier lenguaje.** Si la aplicación no es Node, escribir el
+   equivalente de la librería en su lenguaje siguiendo «Si la aplicación no es
+   Node» de `references/conexion.md` (rutas, formato de eventos y foto); la
+   oficina y la comprobación no cambian.
 1. **Buscar todos los sitios donde corre trabajo real**, no solo «un servidor»:
    servidores HTTP (`createServer`, Express, Fastify, rutas API de Next…),
    servidores y scripts locales (`npm run …`, carpetas `local/`, `scripts/`) y
