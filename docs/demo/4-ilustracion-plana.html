@@ -147,21 +147,60 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 @media (prefers-reduced-motion: reduce){.plan .pin .tag{animation:none!important}}
 .pin[data-state="working"] .tag{background:#1F6F62;color:#FFFFFF;border-color:#1F6F62}
 .pin[data-state="blocked"] .tag{background:#C63F33;color:#FFFFFF;border-color:#C63F33}
-.pop{position:absolute;pointer-events:auto;z-index:6;width:min(310px,86vw);background:var(--surface);color:var(--ink);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:12px 14px 12px;font-size:13.5px;line-height:1.45}
-.pop-head{display:flex;align-items:flex-start;gap:10px}
-.pop-head h3{font-family:var(--f-display);font-weight:700;font-size:19px;line-height:1.1;margin:0;flex:1;min-width:0}
-.pop-head .role{display:block;font-family:var(--f-body);font-weight:500;font-size:12.5px;color:var(--muted);margin-top:2px}
-.pop-close{background:transparent;border:1px solid var(--line);color:var(--ink);width:26px;height:26px;cursor:pointer;font-size:15px;line-height:1;flex:none}
+/* Ficha emergente sobre el plano: banner, retrato, qué hace ahora, su labor y el registro */
+.pop{position:absolute;pointer-events:auto;z-index:6;width:min(320px,86vw);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.12);padding:0 0 14px;overflow:hidden;font-family:var(--f-body);font-size:13.5px;line-height:1.45}
+.pop.entra{animation:popEntra .22s cubic-bezier(.2,.9,.3,1.15) both}
+@keyframes popEntra{from{opacity:0;scale:.92}}
+.pop-banner{position:relative;height:84px;background:linear-gradient(120deg,var(--c),color-mix(in srgb,var(--c) 40%,#FFFFFF))}
+.pop-banner::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.28) 1.2px,transparent 1.4px);background-size:12px 12px}
+.pop-st{position:absolute;z-index:1;top:15px;right:52px;font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.94);color:#5A6376}
+.pop-st[data-s="working"]{color:#14806A}.pop-st[data-s="blocked"]{color:#C0392B}.pop-st[data-s="waiting"]{color:#A86A00}.pop-st[data-s="done"]{color:#23824A}
+.pop-close{position:absolute;z-index:1;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.94);color:#1B2130;font-size:17px;line-height:1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.pop-close:hover{background:#FFFFFF;transform:scale(1.06)}
+.pop-id{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:-50px;padding:0 20px}
+.pop-foto{flex:none;width:100px;height:100px;border-radius:50%;border:4px solid var(--surface);overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.pop-foto svg{display:block;width:100%;height:100%}
+.pop-foto[data-s="working"]{box-shadow:0 0 0 3px var(--accent),0 2px 8px rgba(0,0,0,.18)}
+.pop-foto[data-s="blocked"]{box-shadow:0 0 0 3px var(--bad),0 2px 8px rgba(0,0,0,.18)}
+.pop-foto[data-s="waiting"]{box-shadow:0 0 0 3px var(--warn),0 2px 8px rgba(0,0,0,.18)}
+.pop-foto[data-s="done"]{box-shadow:0 0 0 3px var(--ok),0 2px 8px rgba(0,0,0,.18)}
+.pop-quien{min-width:0;padding-bottom:1px}
+.pop-quien h3{margin:0;font-family:var(--f-body);font-size:22px;font-weight:700;line-height:1.2}
+.pop-quien .role{display:block;font-size:14.5px;color:var(--ink);line-height:1.35;margin-top:2px}
+.pop-area{display:block;margin-top:5px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.pop-k{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pop-now{margin:16px 20px 0;padding:11px 14px;border-radius:10px;border-left:3px solid var(--muted);background:color-mix(in srgb,var(--muted) 10%,transparent)}
+.pop-now p{margin:2px 0 0;font-weight:600}
+.pop-now[data-s="working"]{border-color:var(--accent);background:var(--accent-soft)}
+.pop-now[data-s="blocked"]{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.pop-now[data-s="waiting"]{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.pop-now[data-s="done"]{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.pop-now[data-s="working"] .pop-k::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);animation:popLatido 1.2s ease-in-out infinite}
+@keyframes popLatido{50%{opacity:.25}}
+.pop-labor,.pop-reg{margin:14px 20px 0}
+.pop-labor p{margin:2px 0 6px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+.pop .mod{display:inline-block;font-family:var(--f-mono);font-size:11px;color:var(--ink);background:color-mix(in srgb,var(--c) 15%,transparent);padding:3px 8px;border-radius:6px;word-break:break-word}
+.pop .lg{max-height:170px;overflow-y:auto;margin:7px 0 0 4px;padding:0 4px 0 0;border-left:1px dashed var(--line);gap:6px}
+.pop .lg li{position:relative;padding-left:12px}
+.pop .lg li::before{content:"";position:absolute;left:-4.5px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px var(--surface)}
+.pop .lg li[data-s="working"]::before{background:var(--accent)}.pop .lg li[data-s="blocked"]::before{background:var(--bad)}.pop .lg li[data-s="waiting"]::before{background:var(--warn)}.pop .lg li[data-s="done"]::before{background:var(--ok)}
+.pop .lg li:has(.empty)::before{display:none}
+/* La ficha se abre en el centro de la pantalla, con el fondo atenuado */
+.pop.centro{position:fixed;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow-y:auto;z-index:45;font-size:14.5px;padding-bottom:20px}
+.pop-fondo{position:fixed;inset:0;z-index:44;background:rgba(6,10,20,.38);animation:teamFondo .2s ease both}
+.pop-fondo[hidden]{display:none}
+/* En móvil, la ficha sube desde abajo como una hoja */
+.pop.hoja{position:fixed;left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;max-height:72vh;overflow-y:auto;transform:none!important;z-index:45}
+.pop.hoja.entra{animation:popHoja .25s cubic-bezier(.2,.9,.3,1) both}
+@keyframes popHoja{from{opacity:0;translate:0 40px}}
+@media (prefers-reduced-motion: reduce){.pop.hoja.entra,.pop.entra,.pop-now .pop-k::before{animation:none}}
 .pop .chipst{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border:1px solid currentColor;color:var(--muted);margin:8px 0 6px}
 .pop .chipst[data-s="working"],.lg li[data-s="working"] .t{color:var(--accent)}
 .pop .chipst[data-s="blocked"],.lg li[data-s="blocked"] .t{color:var(--bad)}
 .pop .chipst[data-s="waiting"],.lg li[data-s="waiting"] .t{color:var(--warn)}
 .pop .chipst[data-s="done"],.lg li[data-s="done"] .t{color:var(--ok)}
 .pop .lbl,.ficha .lbl{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 3px}
-.pop .now{font-weight:600}
-.pop .mod{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);word-break:break-word}
 .lg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
-.pop .lg{max-height:150px;overflow-y:auto}
 .lg li{display:grid;grid-template-columns:auto 1fr;gap:8px}
 .lg .t{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:1px}
 .lg .empty{display:block;color:var(--muted)}
@@ -747,6 +786,7 @@ const LOG=Object.fromEntries(ids.map(id=>[id,[]]));
 let clock=0, popId=null;
 const pop=document.createElement('div');pop.className='pop';pop.hidden=true;pop.setAttribute('role','dialog');overlay.appendChild(pop);
 pop.addEventListener('click',e=>e.stopPropagation());
+const popFondo=document.createElement('div');popFondo.className='pop-fondo';popFondo.hidden=true;
 const LBL={idle:'Disponible',waiting:'Esperando turno',working:'Trabajando',blocked:'Bloqueado',done:'Hecho'};
 function hora(ms){const s=Math.round(ms/1000*8);const d=new Date(Date.UTC(2026,0,1,10,0,s));return d.toISOString().slice(11,19);}
 function ahora(id){const st=state[id], last=LOG[id][LOG[id].length-1];
@@ -757,20 +797,22 @@ function ahora(id){const st=state[id], last=LOG[id][LOG[id].length-1];
 function logHTML(id){const L=LOG[id];
   if(!L.length)return `<ul class="lg"><li><span class="empty">Sin actividad registrada todavía. Pulsa «Simular» para generar el registro.</span></li></ul>`;
   return `<ul class="lg">${[...L].reverse().map(e=>`<li data-s="${e.st}"><span class="t">${e.t}</span><span>${esc(e.msg)}</span></li>`).join('')}</ul>`;}
-function popHTML(id){const t=T[id];return `
-  <div class="pop-head"><h3>${esc(t.name)}<span class="role">${esc(t.role)}</span></h3><button type="button" class="pop-close" aria-label="Cerrar">×</button></div>
-  <span class="chipst" data-s="${state[id]}">${LBL[state[id]]}</span>
-  <div class="lbl">Ahora</div><div class="now">${esc(ahora(id))}</div>
-  <div class="lbl">Su labor</div><div>${esc(t.gesto)}</div><div class="mod">${esc(t.mod)}</div>
-  <div class="lbl">Registro del Job</div>${logHTML(id)}`;}
+function popHTML(id){const t=T[id],st=state[id],z=ZONES.find(z=>z.ids.includes(id));return `
+  <div class="pop-banner"><span class="pop-st" data-s="${st}">${LBL[st]}</span><button type="button" class="pop-close" aria-label="Cerrar">×</button></div>
+  <div class="pop-id"><div class="pop-foto" data-s="${st}">${typeof window.OF_RETRATO==='function'?window.OF_RETRATO(id):''}</div>
+    <div class="pop-quien"><h3>${esc(t.name)}</h3><span class="role">${esc(t.role)}</span>${z?`<span class="pop-area">${esc(z.name)}</span>`:''}</div></div>
+  <div class="pop-now" data-s="${st}"><span class="pop-k">Ahora</span><p>${esc(ahora(id))}</p></div>
+  <div class="pop-labor"><span class="pop-k">Su labor</span><p>${esc(t.gesto)}</p>${t.mod?`<span class="mod">${esc(t.mod)}</span>`:''}</div>
+  <div class="pop-reg"><span class="pop-k">Registro del Job</span>${logHTML(id)}</div>`;}
 function placePop(id){const p=where(id);const sx=p.x+OX, sy=p.y+OY;
   pop.style.left=pct(sx,W);pop.style.top=pct(sy,H);
   const tx=sx<100?'-10%':sx>W-100?'-90%':'-50%';
   const ty=sy<H*0.5?'calc(10px * var(--s))':'calc(-100% - 12px * var(--s))';
   pop.style.transform=`translate(${tx}, ${ty})`;}
-function openPop(id){popId=id;pop.innerHTML=popHTML(id);placePop(id);pop.hidden=false;
+function openPop(id){const nuevo=popId!==id||pop.hidden,hoja=innerWidth<640;
+  if(pop.parentNode!==document.body){document.body.appendChild(popFondo);document.body.appendChild(pop);}pop.classList.toggle('hoja',hoja);pop.classList.toggle('centro',!hoja);popFondo.hidden=false;popId=id;pop.style.setProperty('--c',T[id].color);pop.innerHTML=popHTML(id);placePop(id);pop.hidden=false;if(nuevo){pop.classList.remove('entra');void pop.offsetWidth;pop.classList.add('entra');}
   pop.querySelector('.pop-close').addEventListener('click',closePop);}
-function closePop(){popId=null;pop.hidden=true;}
+function closePop(){popId=null;pop.hidden=true;popFondo.hidden=true;}
 function refreshPop(){if(popId){const sc=pop.querySelector('.lg')?.scrollTop||0;openPop(popId);const lg=pop.querySelector('.lg');if(lg)lg.scrollTop=sc;}}
 document.addEventListener('click',e=>{if(popId&&!pop.contains(e.target))closePop();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popId)closePop();});
@@ -1089,6 +1131,7 @@ if(OFICINA.directo&&OFICINA.directo.url&&window.EventSource){
     if(acc('pen'))o.push('<rect x="71" y="94" width="3" height="12" rx="1" fill="#2A60D0"/>');
     return `<svg viewBox="0 0 120 120" aria-hidden="true">${o.join('')}</svg>`;
   }
+  window.OF_RETRATO=retrato;
   const bar=document.getElementById('jobbar'), who=document.getElementById('jobWho');
   const ver=(e,id)=>{e.stopPropagation();cerrar();select(id);openPop(id);};
   /* El texto del paso va en su propio bloque: siempre dos renglones de alto, y «…» si es más largo */
